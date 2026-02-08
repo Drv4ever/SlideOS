@@ -3,12 +3,38 @@ import { PromptBox } from "@/components/ui/PromptBox";
 import { Controls } from "@/components/ui/controlRow";
 import { TextContentConfig } from "@/components/ui/textcontentConfig";
 import { CustomizeTheme } from "@/components/ui/customtheme";
-
+import { useState,useEffect } from "react";
 export default function Home() {
 
-  const handleGenerate = () => {
-    console.log("Generating presentation...");
+// fake api call
+  const generatePresentation = async (data) => {
+    console.log("Sending to backend:", data);
+  
+    await new Promise((res) => setTimeout(res, 1000));
+  
+    alert("Presentation generated (fake)");
   };
+  
+
+  const handleGenerate = async () => {
+    if (!form.prompt.trim()){
+      alert("Please enter a prompt");
+      return;
+    }
+    await console.log(generatePresentation(form));
+  };
+
+  const [form,setForm] = useState({
+    prompt: "",
+    slides: 8,
+    contentLevel: "concise",
+    theme : "daktilo"
+  });
+
+  // useEffect(() => {
+  //   console.log(form);
+  // }, [form]);
+  
 
   return (
     <>
@@ -31,21 +57,42 @@ export default function Home() {
 
               {/* Prompt Box */}
               <div style={{ marginBottom: '40px' }}>
-                <PromptBox />
+                <PromptBox 
+                value = {form.prompt}
+                onChange={(e)=>
+                  setForm({...form,prompt:e.target.value})
+                }
+
+                />
               </div>
 
               {/* Controls */}
               <div style={{ marginBottom: '40px' }}>
-                <Controls />
+                <Controls  
+                slides = {form.slides}
+                onSlideChange={(value) =>
+                  setForm({...form,slides:value})
+                }
+                />
               </div>
 
               {/* Text Content Config */}
               <div className="w-full" style={{ marginBottom: '30px' }}>
-                <TextContentConfig />
+                <TextContentConfig 
+                contentLevel = {form.contentLevel}
+                value={form.contentLevel}
+                onChange = {(v)=>
+                  {setForm({...form,contentLevel:v})}
+              }/>
               </div>
 
               <div className="w-full">
-                <CustomizeTheme />
+                <CustomizeTheme 
+                value = {form.theme}
+                onChange={(theme)=>
+                  setForm({...form,theme:theme})
+                }
+                />
               </div>
             </div>
           </main>
@@ -68,7 +115,7 @@ export default function Home() {
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <button
+          <button  onClick={handleGenerate}
             className="inline-flex items-center justify-center gap-2 font-semibold rounded-lg
          bg-primary text-primary-foreground
          shadow-md shadow-primary/20

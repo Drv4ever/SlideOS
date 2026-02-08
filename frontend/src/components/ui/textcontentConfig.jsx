@@ -3,7 +3,7 @@ import { List } from "lucide-react";
 /* =========================
    MAIN COMPONENT
    ========================= */
-export function TextContentConfig() {
+export function TextContentConfig({value,onChange}) {
   return (
     <div className="border p-6 shadow-sm rounded-xl bg-background">
       <div className="mb-3 flex items-center gap-2">
@@ -18,10 +18,10 @@ export function TextContentConfig() {
       </p>
 
       <div className="grid grid-cols-4 gap-3 mb-6">
-        <OptionCard title="Minimal" active={false} lines={2} />
-        <OptionCard title="Concise" active={false} lines={3} />
-        <OptionCard title="Detailed" active={false} lines={4} />
-        <OptionCard title="Extensive" active={false} lines={5} />
+        <OptionCard title="Minimal" active={value === 'minimal'} lines={2} onClick={() => onChange("minimal")} />
+        <OptionCard title="Concise" active={value === 'concise'} lines={3}  onClick={() => onChange("concise")}/>
+        <OptionCard title="Detailed" active={value === 'detailed'} lines={4} onClick={() => onChange("detailed")}/>
+        <OptionCard title="Extensive" active={value === 'extensive'} lines={5}  onClick={() => onChange("extensive")} />
       </div>
 
       <div className="grid grid-cols-3 gap-4">
@@ -37,9 +37,11 @@ export function TextContentConfig() {
    HELPER COMPONENTS
    ========================= */
 
-function OptionCard({ title, active, lines }) {
+function OptionCard({ title, active, lines ,onClick }) {
   return (
     <button
+    type="button"
+    onClick={onClick}
       className={`flex flex-col items-center justify-center gap-3 rounded-lg border-2 p-4 transition-all aspect-square
         ${
           active

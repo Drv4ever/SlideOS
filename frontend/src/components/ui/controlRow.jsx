@@ -7,20 +7,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export function Controls() {
+export function Controls({slides,onSlideChange}) {
   // 1. Initialize state with the default value
-  const [slideCount, setSlideCount] = useState("5");
+
   const slideOptions = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12];
 
-  const handleGenerate = () => {
-    // This is where you would trigger your AI generation logic
-    console.log("Generating with:", slideCount, "slides");
-  };
+ 
 
   return (
     <div className="bg-gray-400/30 p-4 rounded-xl flex flex-row gap-4 items-center justify-between">
       {/* 2. Bind the value and change handler to the Select component */}
-      <Select value={slideCount} onValueChange={setSlideCount}>
+      <Select value={slides.toString()} onValueChange={(value)=>onSlideChange(Number(value)) }>
         <SelectTrigger className="h-[30px] w-[110px] bg-white border-none rounded-lg text-xs font-xs shadow-sm">
           <SelectValue placeholder="No. of slides" />
         </SelectTrigger>

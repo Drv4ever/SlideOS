@@ -3,9 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 
-export function CustomizeTheme() {
-  const [selectedTheme, setSelectedTheme] = useState("Mystique");
-
+export function CustomizeTheme({value,onChange}) {
+   
   const themes = [
     {
       name: "Daktilo",
@@ -58,6 +57,9 @@ export function CustomizeTheme() {
    
   ];
 
+  
+  
+
   return (
     <Card className="w-full bg-card border-border">
       <CardHeader className="pb-4">
@@ -81,11 +83,11 @@ export function CustomizeTheme() {
           {themes.map((theme) => (
             <button
               key={theme.name}
-              onClick={() => setSelectedTheme(theme.name)}
+              onClick={() => onChange(theme.name)}
               className={`relative rounded-lg border-2 p-4 transition-all hover:shadow-md ${
-                selectedTheme === theme.name
-                  ? "border-purple-600 shadow-lg"
-                  : "border-gray-200"
+                value === theme.name
+                  ? "border-2 border-purple-600 ring-2 ring-purple-500/40 shadow-lg"
+                  : "border border-border"
               }`}
             >
               {/* Theme Preview */}
@@ -108,7 +110,7 @@ export function CustomizeTheme() {
               </div>
 
               {/* Selected Indicator */}
-              {selectedTheme === theme.name && (
+              {value === theme.name && (
                 <div className="absolute top-2 right-2 bg-purple-600 rounded-full p-1">
                   <Check className="h-3 w-3 text-white" />
                 </div>
