@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 
-export function CustomizeTheme({value,onChange}) {
-   
+export function CustomizeTheme({ value, onChange }) {
+
   const themes = [
     {
       name: "Daktilo",
@@ -54,11 +54,8 @@ export function CustomizeTheme({value,onChange}) {
       titleColor: "text-blue-300",
       borderColor: "border-blue-400"
     },
-   
-  ];
 
-  
-  
+  ];
 
   return (
     <Card className="w-full bg-card border-border">
@@ -79,16 +76,22 @@ export function CustomizeTheme({value,onChange}) {
         </div>
 
         {/* Theme Grid */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           {themes.map((theme) => (
             <button
               key={theme.name}
               onClick={() => onChange(theme.name)}
-              className={`relative rounded-lg border-2 p-4 transition-all hover:shadow-md ${
-                value === theme.name
-                  ? "border-2 border-purple-600 ring-2 ring-purple-500/40 shadow-lg"
+              // Reduce width, add min-w-[0] for flex/grid shrink, prevent border overlap by reducing px, and add box-border
+              className={`relative rounded-lg border-2 transition-all hover:shadow-md box-border w-full max-w-[210px] min-w-0 flex flex-col items-stretch 
+                ${value === theme.name
+                  ? "border-2 border-purple-800 ring-2 ring-purple-500/40 shadow-lg"
                   : "border border-border"
-              }`}
+                }
+              `}
+              style={{
+                padding: '14px', // Reduce from p-4 (16px) to 14px, to offset border size on select
+                margin: '0 auto',
+              }}
             >
               {/* Theme Preview */}
               <div className={`rounded-lg ${theme.bgColor} p-6 mb-3 relative`}>
@@ -111,7 +114,7 @@ export function CustomizeTheme({value,onChange}) {
 
               {/* Selected Indicator */}
               {value === theme.name && (
-                <div className="absolute top-2 right-2 bg-purple-600 rounded-full p-1">
+                <div className="absolute top-2 right-2 bg-purple-800 rounded-full p-1">
                   <Check className="h-3 w-3 text-white" />
                 </div>
               )}
