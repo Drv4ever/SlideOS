@@ -1,8 +1,4 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
-
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400..900&display=swap');
-
-
 @plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));
@@ -51,7 +47,6 @@
   --color-sidebar-border: var(--sidebar-border); /* white */
   --color-sidebar-ring: var(--sidebar-ring);
   --font-sans: 'Montserrat', sans-serif;
-  --font-serif: 'Playfair Display', serif;
 }
 
 /* Actual values */

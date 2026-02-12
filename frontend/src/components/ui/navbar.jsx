@@ -2,42 +2,26 @@ import { ThemeToggle } from "./theme-toggle";
 
 export function Navbar() {
   return (
-    <nav 
-      style={{ 
-        position: 'fixed', 
-        top: 0, 
-        left: 0,
-        right: 0,
-        zIndex: 100,
-        backgroundColor: 'hsl(var(--background) / 0.95)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-      }}
-      className="border-b border-border/40"
-    >
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-5">
+    <div className="fixed top-0 inset-x-0 z-50 w-full bg-background/80 backdrop-blur-xl border-b border-border/40">
+      <div className="mx-auto flex items-center justify-between px-6 md:px-16 lg:px-28 xl:px-36 2xl:px-52" style={{ height: '40px' }}>
         {/* Logo */}
-        <div className="text-3xl font-extrabold font-serif" style={{ fontWeight: 800 }}>SlideOS</div>
-
-        {/* Links container */}
-        <div className="flex justify-between w-2/5 min-w-[300px] max-w-[500px] text-sm text-muted-foreground">
-          <a href="#features" className="text-foreground no-underline hover:text-primary/70 transition-colors hover:scale-105">
-            Features
-          </a>
-          <a href="#community" className="text-foreground no-underline hover:text-primary/70 transition-colors hover:scale-105">
-            Community
-          </a>
-          <a href="#demo" className="text-foreground no-underline hover:text-primary/70 transition-colors hover:scale-105">
-            Demo
-          </a>
-          <a href="#pricing" className="text-foreground no-underline hover:text-primary/70 transition-colors hover:scale-105">
-            Pricing
-          </a>
+        <div className="font-extrabold tracking-tight font-sans select-none" style={{paddingLeft:'60px', fontSize: '30px'}}>
+          SlideOS
         </div>
-
-        {/* Theme toggle */}
-        <ThemeToggle />
+        
+        {/* Links - Hidden on mobile */}
+        <nav className=" md:flex items-center">
+            <a className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors" style={{ marginRight: '32px' }}>Feature</a>
+          <a className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors" style={{ marginRight: '32px' }}>Community</a>
+          <a className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors" style={{ marginRight: '32px' }}>Demo</a>
+          <a className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Pricing</a>
+        </nav>
+        
+        {/* Theme Toggle */}
+        <div className="flex items-center" style={{paddingRight:'60px'}}>
+          <ThemeToggle />
+        </div>
       </div>
-    </nav>
+    </div>
   );
 }

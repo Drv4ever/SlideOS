@@ -45,7 +45,7 @@ export default function Home() {
         <Navbar />
         {/* Added extra top padding to push text further from navbar */}
         <div className="px-40 md:mt-40" style={{ paddingTop: "40px" }}>
-          <h1 className="text-4xl md:text-[7rem] font-bold text-center mt-20 md:mt-48 leading-tight px-6 font-serif">
+          <h1 className="text-4xl md:text-[7rem] font-bold text-center mt-20 md:mt-48 leading-tight px-6 font-sans">
             Generate PowerPoint Presentation
             <br />
             in a Second
@@ -56,7 +56,7 @@ export default function Home() {
           </div>
 
           <main className="flex justify-center mt-12 px-6 pb-32">
-            <div className="w-full max-w-[700px]">
+            <div className="w-full max-w-[750px]">
               {/* Prompt Box */}
               <div style={{ marginBottom: "40px" }}>
                 <PromptBox
@@ -98,13 +98,10 @@ export default function Home() {
       {/* Fixed button bar */}
       <div
         style={{
-          position: "fixed",
+        
           bottom: 0,
           left: 0,
           right: 0,
-          backgroundColor: "hsl(var(--background) / 0.95)",
-          backdropFilter: "blur(3px)",
-          WebkitBackdropFilter: "blur(3px)",
           padding: "6px 16px",
           zIndex: 90,
           borderTop: "1px solid hsl(var(--border) / 0.4)",
