@@ -121,12 +121,7 @@ export function CustomizeTheme({ value, onChange }) {
                 </div>
               </div>
 
-              {/* SELECTED CHECK */}
-              {value === theme.name && (
-                <div className="absolute top-3 right-3 bg-purple-700 rounded-full p-1">
-                  <Check className="h-3 w-3 text-white" />
-                </div>
-              )}
+            
             </button>
           ))}
         </div>
