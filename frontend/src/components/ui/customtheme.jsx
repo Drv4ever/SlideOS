@@ -59,10 +59,11 @@ export function CustomizeTheme({ value, onChange }) {
 
           <Button
             variant="ghost"
-            className="text-xs font-semibold text-primary"
+            className="bg-primary/120 text-xs font-semibold font-sans hover:bg-primary/10 text-primary border-none"
           >
             More Themes
           </Button>
+
         </div>
       </CardHeader>
 

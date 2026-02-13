@@ -10,13 +10,11 @@ export function Navbar() {
         </div>
         
         {/* Links - Hidden on mobile */}
-        <nav className=" md:flex items-center">
-            <a className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors" style={{ marginRight: '32px' }}>Feature</a>
-          <a className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors" style={{ marginRight: '32px' }}>Community</a>
-          <a className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors" style={{ marginRight: '32px' }}>Demo</a>
-          <a className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Pricing</a>
+        <nav className="flex items-center" style={{ gap: '2rem', paddingRight: '50px' }}>
+          <a className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Feature</a>
+          <a className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Community</a>
+          <a className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors">Demo</a>
         </nav>
-        
         {/* Theme Toggle */}
         <div className="flex items-center" style={{paddingRight:'60px'}}>
           <ThemeToggle />
