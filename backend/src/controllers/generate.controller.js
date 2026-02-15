@@ -1,6 +1,7 @@
 
 import { fakeAIGenerate } from "../utils/fakeaigeneration.js";
 import { validateGenerateInput } from "../validaters/generate.validator.js";
+import { generateWithGemini } from "../services/gemini.service.js";
 // Controller to handle presentation generation requests
 export const generatePresentation = async (req, res) => {
   try {
@@ -12,18 +13,21 @@ export const generatePresentation = async (req, res) => {
       return res.status(400).json({success: false, error});
      }
 
-    // Simulate delay (for demonstration purposes)
-    await new Promise((r) => setTimeout(r, 1000));
+     let presentation;
 
-       const  presentation = fakeAIGenerate(data);
-   
+     try {
+      presentation = await generateWithGemini(data);
+     }catch(aiError){
+      console.warn("Gemini failed, using fake AI");
+      presentation = fakeAIGenerate(data);
+     }
 
-    // Send successful response
-    return res.status(200).json({
+     return res.status(200).json({
       success: true,
       data: presentation,
     });
 
+   
   } catch (error) {
     // Catch all other errors
     console.error("GENERATION ERROR:", error);

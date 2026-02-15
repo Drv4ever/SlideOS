@@ -165,7 +165,7 @@
       const data = await res.json();
 
       console.log("Backend Responce: ",data);
-      navigate("/preview",{state: data});
+      navigate("/preview",{state: {presentation: data.data}});
       }catch (err) {
         console.error(err);
         alert("Something went wrong");

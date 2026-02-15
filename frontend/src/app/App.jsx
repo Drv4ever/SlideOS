@@ -4,7 +4,7 @@ import { PresentationGenerator } from './components/PresentationGenerator.jsx';
 import { Footer } from './components/Footer.jsx';
 import { useState } from 'react';
 import { Routes, Route } from "react-router-dom";
-import PresentationPreview from './PresentationPreview.jsx';
+import PresentationPreview from './PresentationPreview.jsx'; // for routing purpose
 
 export default function App() {
   const [presentationTheme, setPresentationTheme] = useState({
@@ -33,7 +33,7 @@ export default function App() {
         <Header themeColors={presentationTheme.colors} />
 
         <main className="flex-1">
-          {/* 🔥 ROUTES GO HERE */}
+          {/*  ROUTES GO HERE */}
           <Routes>
             <Route 
               path="/" 

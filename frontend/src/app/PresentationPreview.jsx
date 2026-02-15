@@ -1,30 +1,38 @@
+import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { useLocation } from "react-router-dom";
+export default function PresentationPreview() {
+  const { state } = useLocation();
+  const navigate = useNavigate();
 
-export default function PresentationPreview(){
-        const {state} = useLocation();
-        console.log(state);
-        if (!state){
-            return <p>no presentation data yet</p>;
-        }
-        return(
-            <div className="max-w-4xl mx-auto p-6">
-            <h1 className="text-3xl font-bold mb-6">
-              {state.data.title}
-            </h1>
-      
-            {state.data.slides.map((slide) => (
-              <div key={slide.slideNumber} className="mb-6 p-4 border rounded-lg">
-                <h2 className="text-xl font-semibold mb-2">
-                  {slide.heading}
-                </h2>
-                <ul className="list-disc pl-5">
-                  {slide.content.map((point, i) => (
-                    <li key={i}>{point}</li>
-                  ))}
-                </ul>
-              </div>
+  if (!state?.presentation) {
+    return (
+      <div className="p-6">
+        <p>No presentation found.</p>
+        <button onClick={() => navigate("/")}>
+          Go back
+        </button>
+      </div>
+    );
+  }
+
+  const { title, slides } = state.presentation;
+
+  return (
+    <div className="p-8 space-y-6">
+      <h1 className="text-4xl font-bold">{title}</h1>
+
+      {slides.map(slide => (
+        <div key={slide.slideNumber} className="p-4 border rounded-lg bg-white">
+          <h2 className="text-xl font-semibold">
+            {slide.slideNumber}. {slide.heading}
+          </h2>
+          <ul className="list-disc ml-6 mt-2">
+            {slide.content.map((point, i) => (
+              <li key={i}>{point}</li>
             ))}
-          </div>
-        );
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
 }
