@@ -3,6 +3,8 @@ import { Header } from './components/Header.jsx';
 import { PresentationGenerator } from './components/PresentationGenerator.jsx';
 import { Footer } from './components/Footer.jsx';
 import { useState } from 'react';
+import { Routes, Route } from "react-router-dom";
+import PresentationPreview from './PresentationPreview.jsx';
 
 export default function App() {
   const [presentationTheme, setPresentationTheme] = useState({
@@ -29,9 +31,26 @@ export default function App() {
         }}
       >
         <Header themeColors={presentationTheme.colors} />
+
         <main className="flex-1">
-          <PresentationGenerator onThemeChange={setPresentationTheme} />
+          {/* 🔥 ROUTES GO HERE */}
+          <Routes>
+            <Route 
+              path="/" 
+              element={
+                <PresentationGenerator 
+                  onThemeChange={setPresentationTheme} 
+                />
+              } 
+            />
+
+            <Route 
+              path="/preview" 
+              element={<PresentationPreview />} 
+            />
+          </Routes>
         </main>
+
         <Footer themeColors={presentationTheme.colors} />
       </div>
     </ThemeProvider>

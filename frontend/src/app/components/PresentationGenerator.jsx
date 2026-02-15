@@ -3,6 +3,7 @@
   import { Button } from './ui/button';
   import { Textarea } from './ui/textarea';
   import { Label } from './ui/label';
+  import { useNavigate } from 'react-router-dom';
   import {
     Select,
     SelectContent,
@@ -88,6 +89,7 @@
   ];
 
   export function PresentationGenerator({ onThemeChange }) {
+    const navigate = useNavigate();
     const [prompt, setPrompt] = useState('');
     const [slides, setSlides] = useState('5');
     const [textAmount, setTextAmount] = useState('detailed');
@@ -122,7 +124,8 @@
     };
     
     const handleGenerate = async () => {
-     
+      
+    
       if (!prompt.trim()) return;
       
       setIsGenerating(true);
@@ -162,6 +165,7 @@
       const data = await res.json();
 
       console.log("Backend Responce: ",data);
+      navigate("/preview",{state: data});
       }catch (err) {
         console.error(err);
         alert("Something went wrong");
@@ -465,5 +469,7 @@
           </>
         )}
       </div>
+
+      
     );
   }
