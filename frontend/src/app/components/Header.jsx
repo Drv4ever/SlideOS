@@ -46,13 +46,7 @@ export function Header({ themeColors }) {
               >
                 Demo
               </a>
-              <a 
-                href="#pricing" 
-                className="text-sm transition-all duration-300 hover:opacity-70"
-                style={{ color: themeColors?.text }}
-              >
-                Pricing
-              </a>
+             
             </nav>
           </div>
           <Button
