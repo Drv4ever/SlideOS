@@ -42,7 +42,7 @@ Rules:
 - Audience = ${audience || "general"}
 - Scenario = ${scenario || "educational"}
 - ABSOLUTELY NO markdown
-- STRICTLY NO explanations, just the JSON object.
+- STRICTLY NO explanations, just the JSON object
 `;
 
   try {
