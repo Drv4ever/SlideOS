@@ -3,11 +3,14 @@ import { Header } from './components/Header.jsx';
 import { PresentationGenerator } from './components/PresentationGenerator.jsx';
 import { Footer } from './components/Footer.jsx';
 import { useState } from 'react';
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import PresentationPreview from './PresentationPreview.jsx'; // for routing purpose
 import PresentationView from './PresentationView.jsx';
 
 export default function App() {
+  const location = useLocation();
+  const isPresentationRoute = location.pathname === "/presentation-view";
+
   const [presentationTheme, setPresentationTheme] = useState({
     colors: {
       primary: '#6366f1',
@@ -31,7 +34,7 @@ export default function App() {
           color: presentationTheme.colors.text,
         }}
       >
-        <Header themeColors={presentationTheme.colors} />
+        {!isPresentationRoute && <Header themeColors={presentationTheme.colors} />}
 
         <main className="flex-1">
           {/*  ROUTES GO HERE */}
@@ -56,7 +59,7 @@ export default function App() {
           </Routes>
         </main>
 
-        <Footer themeColors={presentationTheme.colors} />
+        {!isPresentationRoute && <Footer themeColors={presentationTheme.colors} />}
       </div>
     </ThemeProvider>
   );

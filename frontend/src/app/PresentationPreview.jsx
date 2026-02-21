@@ -5,6 +5,8 @@ export default function PresentationPreview() {
   const { state } = useLocation();
   const navigate = useNavigate();
   const initialPresentation = state?.presentation;
+  const selectedTheme = state?.theme;
+  const textAmount = state?.textAmount || "detailed";
 
   if (!initialPresentation) {
     return (
@@ -282,7 +284,7 @@ export default function PresentationPreview() {
      <div className="flex justify-center item-center">
 
       <Button
-      onClick={()=>navigate("/presentation-view",{ state:{slides}})}  // sends all teh content of slides to the new route
+      onClick={()=>navigate("/presentation-view",{ state:{slides, theme: selectedTheme, textAmount}})}  // sends all teh content of slides to the new route
       className="px-8 text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-xl  transform hover:scale-105 transition-all duration-300"
     >
       Generate Presentation   
@@ -293,4 +295,3 @@ export default function PresentationPreview() {
     </div>
   );
 }
-

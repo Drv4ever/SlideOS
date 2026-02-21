@@ -47,4 +47,3 @@ export const generatePresentation = async (req, res) => {
 // Structured JSON
 //  ↓
 // Frontend renders
-
