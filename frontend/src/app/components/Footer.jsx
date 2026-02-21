@@ -13,7 +13,7 @@ export function Footer({ themeColors }) {
             className="text-sm transition-all duration-300"
             style={{ color: themeColors?.text, opacity: 0.7 }}
           >
-            © 2026 SlideOS. Transform your ideas into presentations.
+            © SlideOS. Transform your ideas into presentations.
           </p>
           <div className="flex items-center gap-6">
             <a 

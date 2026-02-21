@@ -282,9 +282,9 @@ export default function PresentationPreview() {
      <div className="flex justify-center item-center">
 
       <Button
-      
+      onClick={()=>navigate("/presentation-view",{ state:{slides}})}  // sends all teh content of slides to the new route
       className="px-8 text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-xl  transform hover:scale-105 transition-all duration-300"
-       >
+    >
       Generate Presentation   
 
       </Button>

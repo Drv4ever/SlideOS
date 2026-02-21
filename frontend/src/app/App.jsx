@@ -5,6 +5,7 @@ import { Footer } from './components/Footer.jsx';
 import { useState } from 'react';
 import { Routes, Route } from "react-router-dom";
 import PresentationPreview from './PresentationPreview.jsx'; // for routing purpose
+import PresentationView from './PresentationView.jsx';
 
 export default function App() {
   const [presentationTheme, setPresentationTheme] = useState({
@@ -48,6 +49,10 @@ export default function App() {
               path="/preview" 
               element={<PresentationPreview />} 
             />
+
+            <Route 
+            path="presentation-view" 
+            element={<PresentationView/>}/>
           </Routes>
         </main>
 
