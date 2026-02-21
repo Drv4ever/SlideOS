@@ -1,9 +1,13 @@
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { Button } from './ui/button';
+import { useNavigate } from 'react-router-dom';
 
 export function Header({ themeColors }) {
   const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+
+
 
   return (
     <header 
@@ -16,14 +20,15 @@ export function Header({ themeColors }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-12">
-            <h1 
-              className="text-xl font-semibold bg-gradient-to-r bg-clip-text text-transparent transition-all duration-500"
+            <button onClick={() => navigate("/")}
+              type="button"
+              className="text-xl font-semibold bg-gradient-to-r bg-clip-text text-transparent transition-all duration-500 cursor-pointer"
               style={{
                 backgroundImage: `linear-gradient(to right, ${themeColors?.primary}, ${themeColors?.secondary})`,
               }}
             >
               SlideOS
-            </h1>
+            </button>
             <nav className="hidden md:flex items-center gap-8">
               <a 
                 href="#features" 
@@ -46,7 +51,6 @@ export function Header({ themeColors }) {
               >
                 Demo
               </a>
-             
             </nav>
           </div>
           <Button
