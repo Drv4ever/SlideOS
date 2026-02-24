@@ -3,7 +3,7 @@ import { useTheme } from './ThemeProvider';
 import { Button } from './ui/button';
 import { useNavigate } from 'react-router-dom';
 
-export function Header({ themeColors }) {
+export function Header({ themeColors, isAuthenticated, onLogout }) {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
@@ -53,21 +53,32 @@ export function Header({ themeColors }) {
               </a>
             </nav>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="rounded-full transition-all duration-300"
-            style={{
-              color: themeColors?.text,
-            }}
-          >
-            {theme === 'light' ? (
-              <Moon className="h-5 w-5" />
-            ) : (
-              <Sun className="h-5 w-5" />
+          <div className="flex items-center gap-2">
+            {isAuthenticated && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onLogout}
+              >
+                Logout
+              </Button>
             )}
-          </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="rounded-full transition-all duration-300"
+              style={{
+                color: themeColors?.text,
+              }}
+            >
+              {theme === 'light' ? (
+                <Moon className="h-5 w-5" />
+              ) : (
+                <Sun className="h-5 w-5" />
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </header>

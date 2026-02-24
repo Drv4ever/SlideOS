@@ -99,6 +99,7 @@
     const [selectedTheme, setSelectedTheme] = useState('cornflower');
     const [isGenerating, setIsGenerating] = useState(false);
     const [currentStep, setCurrentStep] = useState(1);
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
     const currentTheme = themes.find(t => t.id === selectedTheme);
 
@@ -127,6 +128,15 @@
       
     
       if (!prompt.trim()) return;
+
+      const token = localStorage.getItem("token");
+      const isLikelyJwt = token && token.split(".").length === 3;
+      if (!isLikelyJwt) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        alert("Please login first. Missing or invalid auth token.");
+        return;
+      }
       
       setIsGenerating(true);
       console.log('Generating presentation with:', {
@@ -140,10 +150,11 @@
       });
 
       try{
-      const res = await fetch("http://localhost:5000/api/generate",{
+      const res = await fetch(`${API_BASE_URL}/generate`,{
         method : "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
         },
         body: JSON.stringify({
           prompt,
@@ -157,18 +168,20 @@
         // 🔹 later: pass this to PPT renderer or preview
       // setResult(data);
       });
-
-
-      if (!res.ok) {
-        throw new Error("Failed to generate presentation");
-      }
       const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+        }
+        throw new Error(data?.message || data?.error || "Failed to generate presentation");
+      }
 
       console.log("Backend Responce: ",data);
       navigate("/preview",{state: {presentation: data.data , theme: currentTheme, textAmount}});
       }catch (err) {
         console.error(err);
-        alert("Something went wrong");
+        alert(err.message || "Something went wrong");
       } finally {
         setIsGenerating(false);
       }

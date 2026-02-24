@@ -6,10 +6,14 @@ import { useState } from 'react';
 import { Routes, Route, useLocation } from "react-router-dom";
 import PresentationPreview from './PresentationPreview.jsx'; // for routing purpose
 import PresentationView from './PresentationView.jsx';
+import { AuthForm } from './components/AuthForm.jsx';
 
 export default function App() {
   const location = useLocation();
   const isPresentationRoute = location.pathname === "/presentation-view";
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    Boolean(localStorage.getItem("token"))
+  );
 
   const [presentationTheme, setPresentationTheme] = useState({
     colors: {
@@ -24,6 +28,16 @@ export default function App() {
     }
   });
 
+  const handleAuthSuccess = () => {
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setIsAuthenticated(false);
+  };
+
   return (
     <ThemeProvider>
       <div 
@@ -34,7 +48,13 @@ export default function App() {
           color: presentationTheme.colors.text,
         }}
       >
-        {!isPresentationRoute && <Header themeColors={presentationTheme.colors} />}
+        {!isPresentationRoute && (
+          <Header
+            themeColors={presentationTheme.colors}
+            isAuthenticated={isAuthenticated}
+            onLogout={handleLogout}
+          />
+        )}
 
         <main className="flex-1">
           {/*  ROUTES GO HERE */}
@@ -42,9 +62,13 @@ export default function App() {
             <Route 
               path="/" 
               element={
-                <PresentationGenerator 
-                  onThemeChange={setPresentationTheme} 
-                />
+                isAuthenticated ? (
+                  <PresentationGenerator 
+                    onThemeChange={setPresentationTheme} 
+                  />
+                ) : (
+                  <AuthForm onAuthSuccess={handleAuthSuccess} />
+                )
               } 
             />
 
