@@ -6,10 +6,12 @@ dotenv.config();
 import app from "./app.js";
 import generateRoutes from "./src/routes/generate.route.js";
 import authRoutes from "./src/routes/auth.route.js";
+import presentationRoutes from "./src/routes/presentation.route.js";
 
 // 2. This is the correct way to apply routes to the imported app instance
 app.use("/api/generate", generateRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/presentations", presentationRoutes);
 
 const PORT = process.env.PORT || 5000;
 

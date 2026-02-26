@@ -7,6 +7,7 @@ import { Routes, Route, useLocation } from "react-router-dom";
 import PresentationPreview from './PresentationPreview.jsx'; // for routing purpose
 import PresentationView from './PresentationView.jsx';
 import { AuthForm } from './components/AuthForm.jsx';
+import MyPresentations from './MyPresentations.jsx';
 
 export default function App() {
   const location = useLocation();
@@ -80,6 +81,17 @@ export default function App() {
             <Route 
             path="presentation-view" 
             element={<PresentationView/>}/>
+
+            <Route
+              path="/my-presentations"
+              element={
+                isAuthenticated ? (
+                  <MyPresentations />
+                ) : (
+                  <AuthForm onAuthSuccess={handleAuthSuccess} />
+                )
+              }
+            />
           </Routes>
         </main>
 

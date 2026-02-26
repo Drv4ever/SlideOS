@@ -4,26 +4,22 @@ import User from "../../models/users.js";
 
 const signToken = (user) =>
   jwt.sign(
-    {
-      id: user._id,
-      email: user.email,
-    },
+    { id: user._id, email: user.email },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
   );
 
-export const register = async (req, res) => {
+export const generateRegister = async (req, res) => {
   try {
     const { name, email, password } = req.body;
-
     if (!name || !email || !password) {
       return res
         .status(400)
-        .json({ success: false, message: "name, email and password are required" });
+        .json({ success: false, message: "Missing required fields" });
     }
 
-    const existing = await User.findOne({ email: email.toLowerCase() });
-    if (existing) {
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
       return res
         .status(409)
         .json({ success: false, message: "Email already registered" });
@@ -37,7 +33,6 @@ export const register = async (req, res) => {
     });
 
     const token = signToken(user);
-
     return res.status(201).json({
       success: true,
       token,
@@ -47,23 +42,22 @@ export const register = async (req, res) => {
         email: user.email,
       },
     });
-  } catch (error) {
+  } catch (err) {
     return res.status(500).json({
       success: false,
-      message: "Register failed",
-      details: error.message,
+      message: "Registration failed",
+      details: err.message,
     });
   }
 };
 
-export const login = async (req, res) => {
+export const generateLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
-
     if (!email || !password) {
       return res
         .status(400)
-        .json({ success: false, message: "email and password are required" });
+        .json({ success: false, message: "Missing required fields" });
     }
 
     const user = await User.findOne({ email: email.toLowerCase() });
@@ -81,7 +75,6 @@ export const login = async (req, res) => {
     }
 
     const token = signToken(user);
-
     return res.status(200).json({
       success: true,
       token,
@@ -91,11 +84,11 @@ export const login = async (req, res) => {
         email: user.email,
       },
     });
-  } catch (error) {
+  } catch (err) {
     return res.status(500).json({
       success: false,
       message: "Login failed",
-      details: error.message,
+      details: err.message,
     });
   }
 };

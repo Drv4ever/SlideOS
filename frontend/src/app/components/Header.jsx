@@ -1,7 +1,7 @@
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { Button } from './ui/button';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export function Header({ themeColors, isAuthenticated, onLogout }) {
   const { theme, toggleTheme } = useTheme();
@@ -30,8 +30,8 @@ export function Header({ themeColors, isAuthenticated, onLogout }) {
               SlideOS
             </button>
             <nav className="hidden md:flex items-center gap-8">
-              <a 
-                href="#features" 
+              <a
+                href="#features"
                 className="text-sm transition-all duration-300 hover:opacity-70"
                 style={{ color: themeColors?.text }}
               >
@@ -51,6 +51,15 @@ export function Header({ themeColors, isAuthenticated, onLogout }) {
               >
                 Demo
               </a>
+              {isAuthenticated && (
+                <Link
+                  to="/my-presentations"
+                  className="text-sm transition-all duration-300 hover:opacity-70"
+                  style={{ color: themeColors?.text }}
+                >
+                  My Presentations
+                </Link>
+              )}
             </nav>
           </div>
           <div className="flex items-center gap-2">

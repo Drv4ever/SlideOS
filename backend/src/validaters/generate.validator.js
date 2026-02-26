@@ -30,6 +30,6 @@ export const validateGenerateInput = (data) => {
      return "Theme is required";
    }
  
-   return null; // ✅ means VALID
+   return null; // means VALID
  };
  
