@@ -2,6 +2,7 @@ import { useLocation } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import { Rnd } from "react-rnd";
 import PptxGenJS from "pptxgenjs";
+import { updatePresentation } from "../services/presentationService";
 import {
   Copy,
   Type,
@@ -20,6 +21,9 @@ import {
 export default function PresentationView() {
   const { state } = useLocation();
   const rawSlides = state?.slides || [];
+  const editorSlidesFromState = state?.editorSlides || null;
+  const presentationId = state?.presentationId || null;
+  const themeId = state?.themeId || "custom";
   const fileInputRef = useRef();
   const presentationOverlayRef = useRef(null);
   const incomingTheme = state?.theme;
@@ -146,16 +150,21 @@ export default function PresentationView() {
     }));
   };
 
-  const [slides, setSlides] = useState(convertSlides(rawSlides));
+  const [slides, setSlides] = useState(
+    editorSlidesFromState || convertSlides(rawSlides)
+  );
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedId, setSelectedId] = useState(null);
-  const [presentationTitle, setPresentationTitle] = useState("My Presentation");
+  const [presentationTitle, setPresentationTitle] = useState(
+    state?.title || "My Presentation"
+  );
   const [slideNotes, setSlideNotes] = useState(
-    rawSlides.length ? rawSlides.map(() => "") : [""]
+    state?.slideNotes || (rawSlides.length ? rawSlides.map(() => "") : [""])
   );
   const [isPresenting, setIsPresenting] = useState(false);
   const [presentIndex, setPresentIndex] = useState(0);
   const [isSlideAnimating, setIsSlideAnimating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const activeSlide = slides[activeIndex];
   const selectedElement = activeSlide?.elements?.find((el) => el.id === selectedId);
@@ -479,6 +488,41 @@ export default function PresentationView() {
     },
   ];
 
+  const convertEditorSlidesToOutline = (editorSlides) =>
+    editorSlides.map((slide) => {
+      const textElements = (slide.elements || []).filter((el) => el.type === "text");
+      const heading = textElements[0]?.content || "Untitled Slide";
+      const content = textElements.slice(1).map((el) => el.content || "").filter(Boolean);
+      return { heading, content };
+    });
+
+  const handleSavePresentation = async () => {
+    if (!presentationId) {
+      alert("No saved presentation id found for update.");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      await updatePresentation(presentationId, {
+        title: presentationTitle,
+        theme: themeId,
+        slidesCount: slides.length,
+        content: {
+          slides: convertEditorSlidesToOutline(slides),
+          editorSlides: slides,
+          slideNotes,
+          textAmount,
+        },
+      });
+      alert("Presentation changes saved");
+    } catch (error) {
+      alert(error.message || "Failed to save presentation");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div
       style={{
@@ -797,6 +841,27 @@ export default function PresentationView() {
           >
             <Download size={15} />
             Download PPTX
+          </button>
+          <button
+            onClick={handleSavePresentation}
+            disabled={!presentationId || isSaving}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              border: "none",
+              borderRadius: 10,
+              padding: "10px 14px",
+              background: "#0f766e",
+              color: "#ffffff",
+              cursor: !presentationId || isSaving ? "not-allowed" : "pointer",
+              opacity: !presentationId || isSaving ? 0.6 : 1,
+              fontWeight: 600,
+              fontSize: 13,
+              marginLeft: 10,
+            }}
+          >
+            {isSaving ? "Saving..." : "Save Changes"}
           </button>
           <button
             onClick={startFullscreenPresent}

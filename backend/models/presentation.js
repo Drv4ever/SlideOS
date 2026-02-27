@@ -36,5 +36,4 @@ const presentationSchema = new mongoose.Schema(
 presentationSchema.index({ userId: 1, updatedAt: -1 });
 
 const Presentation = mongoose.model("Presentation", presentationSchema);
-
 export default Presentation;

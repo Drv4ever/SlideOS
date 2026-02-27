@@ -40,3 +40,14 @@ export const getPresentationById = async (id) => {
   if (!response.ok) throw new Error('Failed to fetch presentation details');
   return response.json();
 };
+
+export const updatePresentation = async (id, data) => {
+  const response = await fetch(`${API_URL}/${id}`, {
+    method: "PUT",
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) throw new Error("Failed to update presentation");
+  return response.json();
+};

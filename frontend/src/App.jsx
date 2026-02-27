@@ -1,13 +1,13 @@
-import { ThemeProvider } from './components/ThemeProvider.jsx';
+import { ThemeProvider } from './providers/ThemeProvider.jsx';
 import { Header } from './components/Header.jsx';
 import { PresentationGenerator } from './components/PresentationGenerator.jsx';
 import { Footer } from './components/Footer.jsx';
 import { useState } from 'react';
 import { Routes, Route, useLocation } from "react-router-dom";
-import PresentationPreview from './PresentationPreview.jsx'; // for routing purpose
-import PresentationView from './PresentationView.jsx';
+import PresentationPreview from './pages/PresentationPreview.jsx';
+import PresentationView from './pages/PresentationView.jsx';
 import { AuthForm } from './components/AuthForm.jsx';
-import MyPresentations from './MyPresentations.jsx';
+import MyPresentations from './pages/MyPresentations.jsx';
 
 export default function App() {
   const location = useLocation();

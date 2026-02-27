@@ -1,10 +1,7 @@
-import { Moon, Sun } from 'lucide-react';
-import { useTheme } from './ThemeProvider';
 import { Button } from './ui/button';
 import { Link, useNavigate } from 'react-router-dom';
 
 export function Header({ themeColors, isAuthenticated, onLogout }) {
-  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
 
@@ -72,21 +69,6 @@ export function Header({ themeColors, isAuthenticated, onLogout }) {
                 Logout
               </Button>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleTheme}
-              className="rounded-full transition-all duration-300"
-              style={{
-                color: themeColors?.text,
-              }}
-            >
-              {theme === 'light' ? (
-                <Moon className="h-5 w-5" />
-              ) : (
-                <Sun className="h-5 w-5" />
-              )}
-            </Button>
           </div>
         </div>
       </div>

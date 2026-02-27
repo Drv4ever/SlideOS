@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+// user schema for login and jwt authentication
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -20,9 +21,10 @@ const userSchema = new mongoose.Schema(
       minlength: 8,
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
 const User = mongoose.model("User", userSchema);
-
 export default User;

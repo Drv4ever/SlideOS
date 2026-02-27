@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from './ui/select';
 import { Card } from './ui/card';
-import { savePresentation } from '../api/presentationService';
+import { savePresentation } from '../services/presentationService';
 
 const themes = [
   {
@@ -179,9 +179,10 @@ export function PresentationGenerator({ onThemeChange }) {
       }
 
       console.log("Backend Responce: ", data);
+      let savedPresentationId = null;
       try {
         const generatedPresentation = data.data;
-        await savePresentation({
+        const saveResponse = await savePresentation({
           title: prompt.trim().slice(0, 60) || "Untitled Presentation",
           prompt,
           content: generatedPresentation,
@@ -190,11 +191,21 @@ export function PresentationGenerator({ onThemeChange }) {
             ? generatedPresentation.slides.length
             : Number(slides),
         });
+        savedPresentationId = saveResponse?.data?._id || null;
       } catch (saveError) {
         console.error("Failed to save presentation:", saveError);
       }
 
-      navigate("/preview", { state: { presentation: data.data, theme: currentTheme, textAmount } });
+      navigate("/preview", {
+        state: {
+          presentation: data.data,
+          presentationId: savedPresentationId,
+          title: prompt.trim().slice(0, 60) || "Untitled Presentation",
+          theme: currentTheme,
+          themeId: selectedTheme,
+          textAmount,
+        },
+      });
     } catch (err) {
       console.error(err);
       alert(err.message || "Something went wrong");
@@ -247,7 +258,7 @@ export function PresentationGenerator({ onThemeChange }) {
             placeholder="hello please make a ppt on html teaching"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            className="min-h-[120px] resize-none text-base bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 focus:ring-2 transition-all duration-300"
+            className="min-h-[120px] resize-none text-base bg-white border-gray-200 focus:ring-2 transition-all duration-300"
             style={{
               '--tw-ring-color': currentTheme?.colors.primary,
             }}
@@ -257,7 +268,7 @@ export function PresentationGenerator({ onThemeChange }) {
         {/* Slides Selector */}
         <div className="flex items-center justify-center gap-2 mb-8">
           <Select value={slides} onValueChange={setSlides}>
-            <SelectTrigger className="w-32 bg-white dark:bg-gray-900">
+            <SelectTrigger className="w-32 bg-white">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -288,7 +299,7 @@ export function PresentationGenerator({ onThemeChange }) {
       {/* Step 2: Theme Selection - Reveals when step >= 2 */}
       {currentStep >= 2 && (
         <Card
-          className={`p-6 mb-8 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-lg shadow-gray-100 dark:shadow-gray-900/50 transition-all duration-700 ${currentStep === 2 ? 'opacity-100 translate-y-0' : currentStep > 2 ? 'opacity-50 scale-95' : 'opacity-0 translate-y-10'
+          className={`p-6 mb-8 bg-white border-gray-200 shadow-lg shadow-gray-100 transition-all duration-700 ${currentStep === 2 ? 'opacity-100 translate-y-0' : currentStep > 2 ? 'opacity-50 scale-95' : 'opacity-0 translate-y-10'
             }`}
         >
           <div className="flex items-center justify-between mb-6">
@@ -316,7 +327,7 @@ export function PresentationGenerator({ onThemeChange }) {
                 onClick={() => handleThemeChange(theme.id)}
                 className={`p-4 rounded-lg border-2 transition-all duration-300 text-left hover:scale-105 ${selectedTheme === theme.id
                     ? 'shadow-xl ring-2'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-lg'
+                    : 'border-gray-200 hover:border-gray-300 hover:shadow-lg'
                   }`}
                 style={{
                   borderColor: selectedTheme === theme.id ? theme.colors.primary : undefined,
@@ -341,7 +352,7 @@ export function PresentationGenerator({ onThemeChange }) {
                   </div>
                 </div>
                 <div className="flex items-center justify-between mb-1">
-                  <div className="text-sm font-medium text-gray-900 dark:text-white">{theme.name}</div>
+                  <div className="text-sm font-medium text-gray-900">{theme.name}</div>
                   {selectedTheme === theme.id && (
                     <span className="text-xs px-2 py-0.5 rounded" style={{
                       backgroundColor: theme.colors.primary,
@@ -351,7 +362,7 @@ export function PresentationGenerator({ onThemeChange }) {
                     </span>
                   )}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">{theme.fonts}</div>
+                <div className="text-xs text-gray-500">{theme.fonts}</div>
                 <div className="flex gap-1 mt-2">
                   <div className="w-4 h-4 rounded-full" style={{ backgroundColor: theme.colors.primary }} />
                   <div className="w-4 h-4 rounded-full" style={{ backgroundColor: theme.colors.secondary }} />
@@ -381,9 +392,9 @@ export function PresentationGenerator({ onThemeChange }) {
       {/* Step 3: Text Content Options - Reveals when step >= 3 */}
       {currentStep >= 3 && (
         <>
-          <Card className="p-6 mb-8 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-lg shadow-gray-100 dark:shadow-gray-900/50 transition-all duration-700 opacity-100 translate-y-0">
+          <Card className="p-6 mb-8 bg-white border-gray-200 shadow-lg shadow-gray-100 transition-all duration-700 opacity-100 translate-y-0">
             <div className="flex items-center gap-2 mb-6">
-              <div className="flex items-center gap-1 text-gray-900 dark:text-white">
+              <div className="flex items-center gap-1 text-gray-900">
                 <span className="text-sm">☰</span>
                 <h2
                   className="text-2xl font-bold transition-all duration-500"
@@ -399,7 +410,7 @@ export function PresentationGenerator({ onThemeChange }) {
 
             {/* Text Amount Selection */}
             <div className="mb-6">
-              <Label className="text-sm text-gray-700 dark:text-gray-300 mb-3 block">
+              <Label className="text-sm text-gray-700 mb-3 block">
                 Amount of text per card
               </Label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -408,14 +419,14 @@ export function PresentationGenerator({ onThemeChange }) {
                     key={amount}
                     onClick={() => setTextAmount(amount)}
                     className={`py-8 px-4 rounded-lg border-2 transition-all duration-300 ${textAmount === amount
-                        ? 'bg-gray-50 dark:bg-gray-800 shadow-md'
-                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                        ? 'bg-gray-50 shadow-md'
+                        : 'border-gray-200 hover:border-gray-300'
                       }`}
                     style={{
                       borderColor: textAmount === amount ? currentTheme?.colors.primary : undefined,
                     }}
                   >
-                    <span className="text-sm font-medium text-gray-900 dark:text-white capitalize">
+                    <span className="text-sm font-medium text-gray-900 capitalize">
                       {amount}
                     </span>
                   </button>
@@ -426,9 +437,9 @@ export function PresentationGenerator({ onThemeChange }) {
             {/* Dropdowns Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label className="text-sm text-gray-700 dark:text-gray-300 mb-2 block">Tone</Label>
+                <Label className="text-sm text-gray-700 mb-2 block">Tone</Label>
                 <Select value={tone} onValueChange={setTone}>
-                  <SelectTrigger className="bg-white dark:bg-gray-900">
+                  <SelectTrigger className="bg-white">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -441,9 +452,9 @@ export function PresentationGenerator({ onThemeChange }) {
               </div>
 
               <div>
-                <Label className="text-sm text-gray-700 dark:text-gray-300 mb-2 block">Audience</Label>
+                <Label className="text-sm text-gray-700 mb-2 block">Audience</Label>
                 <Select value={audience} onValueChange={setAudience}>
-                  <SelectTrigger className="bg-white dark:bg-gray-900">
+                  <SelectTrigger className="bg-white">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -456,9 +467,9 @@ export function PresentationGenerator({ onThemeChange }) {
               </div>
 
               <div>
-                <Label className="text-sm text-gray-700 dark:text-gray-300 mb-2 block">Scenario</Label>
+                <Label className="text-sm text-gray-700 mb-2 block">Scenario</Label>
                 <Select value={scenario} onValueChange={setScenario}>
-                  <SelectTrigger className="bg-white dark:bg-gray-900">
+                  <SelectTrigger className="bg-white">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -494,7 +505,6 @@ export function PresentationGenerator({ onThemeChange }) {
         </>
       )}
 
-      <div className='Button'> <button>Save Presentation</button></div>
     </div>
 
 
