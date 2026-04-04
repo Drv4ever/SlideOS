@@ -215,6 +215,7 @@ Possible next improvements:
 - refresh-token flow,
 - tests (unit/integration/e2e).
 
+made for learning purose
 ## License
 
 No license file is currently included. Add one (for example `MIT`) before open-source publishing.
