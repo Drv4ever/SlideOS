@@ -2,6 +2,46 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Button } from "../components/ui/button";
 import { updatePresentation } from "../services/presentationService";
+
+const themePalette = {
+  dalibio: {
+    primary: "#6366f1",
+    secondary: "#818cf8",
+    background: "#f0f4ff",
+    text: "#1e1b4b",
+  },
+  noir: {
+    primary: "#18181b",
+    secondary: "#3f3f46",
+    background: "#f5f5f5",
+    text: "#09090b",
+  },
+  cornflower: {
+    primary: "#6366f1",
+    secondary: "#a5b4fc",
+    background: "#eef2ff",
+    text: "#312e81",
+  },
+  indigo: {
+    primary: "#4f46e5",
+    secondary: "#6366f1",
+    background: "#e0e7ff",
+    text: "#3730a3",
+  },
+  orbit: {
+    primary: "#8b5cf6",
+    secondary: "#a78bfa",
+    background: "#faf5ff",
+    text: "#581c87",
+  },
+  cosmos: {
+    primary: "#ec4899",
+    secondary: "#f472b6",
+    background: "#fdf4ff",
+    text: "#831843",
+  },
+};
+
 export default function PresentationPreview() {
   const { state } = useLocation();
   const navigate = useNavigate();
@@ -11,6 +51,7 @@ export default function PresentationPreview() {
   const themeId = state?.themeId || "cornflower";
   const selectedTheme = state?.theme;
   const textAmount = state?.textAmount || "detailed";
+  const activeTheme = selectedTheme?.colors || themePalette[themeId] || themePalette.cornflower;
 
   if (!initialPresentation) {
     return (
@@ -106,11 +147,60 @@ export default function PresentationPreview() {
     <div
       style={{
         minHeight: "100vh",
-        background: "#f3f4f6",
-        padding: "40px",
+        background: activeTheme.background,
+        padding: "24px",
         fontFamily: "Inter, sans-serif",
       }}
     >
+      <div
+        style={{
+          maxWidth: "1100px",
+          margin: "0 auto 24px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "14px 18px",
+          borderRadius: "18px",
+          border: `1px solid ${activeTheme.primary}33`,
+          background: "rgba(255,255,255,0.78)",
+          backdropFilter: "blur(12px)",
+        }}
+      >
+        <button
+          onClick={() => navigate("/")}
+          type="button"
+          style={{
+            fontSize: 22,
+            fontWeight: 700,
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+            backgroundImage: `linear-gradient(90deg, ${activeTheme.primary}, ${activeTheme.secondary})`,
+            WebkitBackgroundClip: "text",
+            color: "transparent",
+          }}
+        >
+          SlideOS
+        </button>
+        <div style={{ display: "flex", gap: 10 }}>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/")}
+          >
+            Back to Prompt
+          </Button>
+          <Button
+            onClick={() => navigate("/my-presentations")}
+            style={{
+              background: `linear-gradient(135deg, ${activeTheme.primary}, ${activeTheme.secondary})`,
+              color: "#fff",
+            }}
+          >
+            My Presentations
+          </Button>
+        </div>
+      </div>
+
       {/* HEADER */}
       <div
         style={{
@@ -121,9 +211,11 @@ export default function PresentationPreview() {
           alignItems: "center",
         }}
       >
-        <h2 style={{ fontSize: 18, fontWeight: 600 }}>Outline</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 600, color: activeTheme.text }}>
+          {initialTitle}
+        </h2>
         <div style={{ fontSize: 14, color: "#6b7280" }}>
-          Templates
+          Outline Editor
         </div>
       </div>
 
@@ -320,7 +412,6 @@ export default function PresentationPreview() {
       Generate Presentation   
 
       </Button>
-
       <Button
       onClick={handleSaveChanges}
       disabled={!presentationId || isSaving}

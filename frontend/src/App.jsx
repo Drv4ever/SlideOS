@@ -68,7 +68,10 @@ export default function App() {
                     onThemeChange={setPresentationTheme} 
                   />
                 ) : (
-                  <AuthForm onAuthSuccess={handleAuthSuccess} />
+                  <AuthForm
+                    onAuthSuccess={handleAuthSuccess}
+                    theme={presentationTheme}
+                  />
                 )
               } 
             />
@@ -88,7 +91,10 @@ export default function App() {
                 isAuthenticated ? (
                   <MyPresentations />
                 ) : (
-                  <AuthForm onAuthSuccess={handleAuthSuccess} />
+                  <AuthForm
+                    onAuthSuccess={handleAuthSuccess}
+                    theme={presentationTheme}
+                  />
                 )
               }
             />

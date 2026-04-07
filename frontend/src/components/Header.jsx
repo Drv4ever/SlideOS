@@ -27,27 +27,6 @@ export function Header({ themeColors, isAuthenticated, onLogout }) {
               SlideOS
             </button>
             <nav className="hidden md:flex items-center gap-8">
-              <a
-                href="#features"
-                className="text-sm transition-all duration-300 hover:opacity-70"
-                style={{ color: themeColors?.text }}
-              >
-                Features
-              </a>
-              <a 
-                href="#community" 
-                className="text-sm transition-all duration-300 hover:opacity-70"
-                style={{ color: themeColors?.text }}
-              >
-                Community
-              </a>
-              <a 
-                href="#demo" 
-                className="text-sm transition-all duration-300 hover:opacity-70"
-                style={{ color: themeColors?.text }}
-              >
-                Demo
-              </a>
               {isAuthenticated && (
                 <Link
                   to="/my-presentations"

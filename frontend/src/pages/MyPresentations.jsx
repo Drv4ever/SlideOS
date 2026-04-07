@@ -7,6 +7,45 @@ import {
   getPresentationById,
 } from "../services/presentationService";
 
+const themePalette = {
+  dalibio: {
+    primary: "#6366f1",
+    secondary: "#818cf8",
+    background: "#f0f4ff",
+    text: "#1e1b4b",
+  },
+  noir: {
+    primary: "#18181b",
+    secondary: "#3f3f46",
+    background: "#f5f5f5",
+    text: "#09090b",
+  },
+  cornflower: {
+    primary: "#6366f1",
+    secondary: "#a5b4fc",
+    background: "#eef2ff",
+    text: "#312e81",
+  },
+  indigo: {
+    primary: "#4f46e5",
+    secondary: "#6366f1",
+    background: "#e0e7ff",
+    text: "#3730a3",
+  },
+  orbit: {
+    primary: "#8b5cf6",
+    secondary: "#a78bfa",
+    background: "#faf5ff",
+    text: "#581c87",
+  },
+  cosmos: {
+    primary: "#ec4899",
+    secondary: "#f472b6",
+    background: "#fdf4ff",
+    text: "#831843",
+  },
+};
+
 export default function MyPresentations() {
   const [presentations, setPresentations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -74,9 +113,28 @@ export default function MyPresentations() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {presentations.map((item) => (
-          <Card key={item._id} className="p-5">
-            <h2 className="text-lg font-semibold">{item.title}</h2>
-            <p className="text-sm opacity-70 mt-1">
+          (() => {
+            const palette = themePalette[item.theme] || themePalette.cornflower;
+            return (
+          <Card
+            key={item._id}
+            className="overflow-hidden border-0 p-0 shadow-[0_16px_40px_rgba(15,23,42,0.08)]"
+            style={{ background: palette.background }}
+          >
+            <div
+              className="h-28 px-5 py-4"
+              style={{
+                background: `linear-gradient(135deg, ${palette.primary}, ${palette.secondary})`,
+                color: "#fff",
+              }}
+            >
+              <div className="text-xs uppercase tracking-[0.18em] text-white/75">
+                Saved deck
+              </div>
+              <h2 className="mt-3 text-lg font-semibold line-clamp-2">{item.title}</h2>
+            </div>
+            <div className="p-5" style={{ color: palette.text }}>
+            <p className="text-sm opacity-70">
               Theme: {item.theme || "N/A"}
             </p>
             <p className="text-sm opacity-70">
@@ -89,7 +147,10 @@ export default function MyPresentations() {
             <Button className="mt-4" onClick={() => openPresentation(item._id)}>
               Open
             </Button>
+            </div>
           </Card>
+            );
+          })()
         ))}
       </div>
     </div>
