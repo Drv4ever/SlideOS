@@ -26,7 +26,7 @@ const presentationSchema = new mongoose.Schema(
       default: 0,
     },
     content: {
-      type: mongoose.Schema.Types.Mixed,
+      type: mongoose.Schema.Types.Mixed,                    //    
       required: true,
     },
   },
@@ -37,3 +37,11 @@ presentationSchema.index({ userId: 1, updatedAt: -1 });
 
 const Presentation = mongoose.model("Presentation", presentationSchema);
 export default Presentation;
+
+
+// {
+//   "slides": [...],
+//   "editorSlides": [...],
+//   "slideNotes": [...],
+//   "textAmount": "detailed"
+// }

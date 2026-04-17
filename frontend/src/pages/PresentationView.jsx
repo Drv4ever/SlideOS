@@ -1,4 +1,4 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import { Rnd } from "react-rnd";
 import PptxGenJS from "pptxgenjs";
@@ -20,6 +20,7 @@ import {
 
 export default function PresentationView() {
   const { state } = useLocation();
+  const navigate = useNavigate();
   const rawSlides = state?.slides || [];
   const editorSlidesFromState = state?.editorSlides || null;
   const presentationId = state?.presentationId || null;
@@ -841,6 +842,25 @@ export default function PresentationView() {
           >
             <Download size={15} />
             Download PPTX
+          </button>
+          <button
+            onClick={() => navigate("/my-presentations")}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              border: "1px solid #d1d5db",
+              borderRadius: 10,
+              padding: "10px 14px",
+              background: "#ffffff",
+              color: "#111827",
+              cursor: "pointer",
+              fontWeight: 600,
+              fontSize: 13,
+              marginLeft: 10,
+            }}
+          >
+            My Presentations
           </button>
           <button
             onClick={handleSavePresentation}

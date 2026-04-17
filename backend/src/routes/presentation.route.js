@@ -2,6 +2,7 @@ import express from "express";
 import auth from "../middleware/middleware.js";
 import {
   createPresentation,
+  deletePresentation,
   getMyPresentations,
   getMyPresentationById,
   updatePresentation,
@@ -13,5 +14,6 @@ router.post("/", auth, createPresentation);
 router.get("/", auth, getMyPresentations);
 router.get("/:id", auth, getMyPresentationById);
 router.put("/:id", auth, updatePresentation);
+router.delete("/:id", auth, deletePresentation);
 
 export default router;

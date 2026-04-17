@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import {
+  deletePresentation,
   getMyPresentations,
   getPresentationById,
 } from "../services/presentationService";
@@ -102,6 +103,22 @@ export default function MyPresentations() {
     }
   };
 
+  const handleDeletePresentation = async (id, title) => {
+    const confirmed = window.confirm(
+      `Delete "${title || "Untitled Presentation"}"? This cannot be undone.`
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await deletePresentation(id);
+      setPresentations((current) => current.filter((item) => item._id !== id));
+    } catch (error) {
+      alert(error.message || "Failed to delete presentation");
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
       <h1 className="text-2xl font-bold mb-6">My Presentations</h1>
@@ -144,9 +161,17 @@ export default function MyPresentations() {
               Updated: {new Date(item.updatedAt).toLocaleString()}
             </p>
 
-            <Button className="mt-4" onClick={() => openPresentation(item._id)}>
-              Open
-            </Button>
+            <div className="mt-4 flex gap-3">
+              <Button onClick={() => openPresentation(item._id)}>
+                Open
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleDeletePresentation(item._id, item.title)}
+              >
+                Delete
+              </Button>
+            </div>
             </div>
           </Card>
             );

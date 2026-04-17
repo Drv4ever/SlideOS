@@ -30,6 +30,7 @@ export const getMyPresentations = async (req, res) => {
     const userPresentations = await Presentation.find({ userId: req.user.id })
       .select("title theme slidesCount updatedAt")
       .sort({ updatedAt: -1 });
+       // based on most resent updates
 
     return res.status(200).json({ success: true, data: userPresentations });
   } catch (err) {
@@ -85,3 +86,28 @@ export const updatePresentation = async (req, res) => {
   }
 };
 
+export const deletePresentation = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const presentation = await Presentation.findById(id);
+    if (!presentation) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Presentation not found" });
+    }
+
+    if (presentation.userId.toString() !== req.user.id) {
+      return res.status(403).json({ success: false, message: "Not authorized" });
+    }
+
+    await presentation.deleteOne();
+    
+    return res.status(200).json({
+      success: true,
+      message: "Presentation deleted successfully",
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};

@@ -51,3 +51,13 @@ export const updatePresentation = async (id, data) => {
   if (!response.ok) throw new Error("Failed to update presentation");
   return response.json();
 };
+
+export const deletePresentation = async (id) => {
+  const response = await fetch(`${API_URL}/${id}`, {
+    method: "DELETE",
+    headers: getHeaders(),
+  });
+
+  if (!response.ok) throw new Error("Failed to delete presentation");
+  return response.json();
+};
