@@ -18,7 +18,7 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
     // Good practice to check if the key is actually loaded
-    console.log("GEMINI KEY LOADED:", process.env.GEMINI_API_KEY ? "YES" : "NO");
+    console.log("GROQ KEY LOADED:", process.env.GROQ_API_KEY ? "YES" : "NO");
 });
 
 

@@ -16,7 +16,7 @@ This repository is a full-stack monorepo:
 
 - JWT authentication (`register`, `login`)
 - Protected slide generation endpoint
-- AI generation with fallback logic
+- AI generation with Groq fallback logic
 - Saved presentations per user
 - Open previously saved presentations
 - Update saved presentations after editing
@@ -62,7 +62,7 @@ SlideOS/
 │     │  ├─ auth.route.js
 │     │  ├─ generate.route.js
 │     │  └─ presentation.route.js
-│     ├─ services/gemini.service.js
+│     ├─ services/groq.service.js
 │     ├─ utils/fakeaigeneration.js
 │     └─ validaters/generate.validator.js
 │
@@ -104,7 +104,7 @@ PORT=5000
 MONGO_URI=mongodb://127.0.0.1:27017/slideOS
 JWT_SECRET=your_long_random_secret
 JWT_EXPIRES_IN=7d
-GEMINI_API_KEY=optional_if_using_gemini
+GROQ_API_KEY=your_groq_api_key
 ```
 
 ### Frontend (`frontend/.env`)

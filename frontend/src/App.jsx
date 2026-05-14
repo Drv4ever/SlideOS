@@ -9,11 +9,43 @@ import PresentationView from './pages/PresentationView.jsx';
 import { AuthForm } from './components/AuthForm.jsx';
 import MyPresentations from './pages/MyPresentations.jsx';
 
+function getStoredToken() {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    return null;
+  }
+
+  const parts = token.split(".");
+  if (parts.length !== 3) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    return null;
+  }
+
+  try {
+    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const paddedBase64 = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
+    const payload = JSON.parse(atob(paddedBase64));
+    if (payload?.exp && payload.exp * 1000 <= Date.now()) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      return null;
+    }
+  } catch {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    return null;
+  }
+
+  return token;
+}
+
 export default function App() {
   const location = useLocation();
   const isPresentationRoute = location.pathname === "/presentation-view";
   const [isAuthenticated, setIsAuthenticated] = useState(
-    Boolean(localStorage.getItem("token"))
+    Boolean(getStoredToken())
   );
 
   const [presentationTheme, setPresentationTheme] = useState({

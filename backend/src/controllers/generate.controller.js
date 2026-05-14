@@ -1,7 +1,7 @@
 
 import { fakeAIGenerate } from "../utils/fakeaigeneration.js";
 import { validateGenerateInput } from "../validaters/generate.validator.js";
-import { generateWithGemini } from "../services/gemini.service.js";
+import { generateWithGroq } from "../services/groq.service.js";
 // Controller to handle presentation generation requests
 export const generatePresentation = async (req, res) => {
   try {
@@ -16,9 +16,9 @@ export const generatePresentation = async (req, res) => {
      let presentation;
 
      try {
-      presentation = await generateWithGemini(data);
+      presentation = await generateWithGroq(data);
      }catch(aiError){
-      console.warn("Gemini failed, using fake AI");
+      console.warn("Groq failed, using fake AI");
       presentation = fakeAIGenerate(data);
      }
 
