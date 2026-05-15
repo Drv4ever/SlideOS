@@ -1,6 +1,7 @@
 # SlideOS
 
 SlideOS is an AI-assisted presentation builder where users can:
+
 - generate slide outlines from prompts,
 - edit outlines,
 - open a full visual slide editor,
@@ -9,6 +10,7 @@ SlideOS is an AI-assisted presentation builder where users can:
 - reopen and continue editing later.
 
 This repository is a full-stack monorepo:
+
 - `frontend/` -> React + Vite client
 - `backend/` -> Node.js + Express + MongoDB API
 
@@ -26,6 +28,7 @@ This repository is a full-stack monorepo:
 ## Tech Stack
 
 ### Frontend
+
 - React 18
 - Vite
 - React Router
@@ -34,6 +37,7 @@ This repository is a full-stack monorepo:
 - `pptxgenjs` (PowerPoint export)
 
 ### Backend
+
 - Node.js (ES Modules)
 - Express
 - MongoDB + Mongoose
@@ -142,13 +146,16 @@ Frontend should run on `http://localhost:5173`.
 Base URL: `http://localhost:5000/api`
 
 ### Auth
+
 - `POST /auth/register`
 - `POST /auth/login`
 
 ### Generation
+
 - `POST /generate` (protected)
 
 ### Presentations
+
 - `POST /presentations` (protected) -> save new
 - `GET /presentations` (protected) -> list mine
 - `GET /presentations/:id` (protected) -> fetch one
@@ -180,15 +187,18 @@ Authorization: Bearer <token>
 ## Troubleshooting
 
 ### `Invalid or expired token`
+
 - Clear old token from browser storage.
 - Login again.
 - Ensure `JWT_SECRET` is stable and backend restarted.
 
 ### `PayloadTooLargeError: request entity too large`
+
 - Increase JSON body limit in `backend/app.js`.
 - Reduce embedded image size/base64 payload when possible.
 
 ### CORS/API errors from frontend
+
 - Ensure backend is running on port `5000`.
 - Ensure `VITE_API_BASE_URL=http://localhost:5000/api`.
 - Restart frontend after env changes.
@@ -196,19 +206,23 @@ Authorization: Bearer <token>
 ## Scripts
 
 ### Backend
+
 - `npm run start` -> run server
 - `npm run dev` -> run with Node watch mode
 
 ### Frontend
+
 - `npm run dev` -> start Vite dev server
 - `npm run build` -> production build
 
 ## Current Status
 
 Implemented:
+
 - Auth, protected generation, save/list/open/update presentations, PPT export.
 
 Possible next improvements:
+
 - delete/rename presentations,
 - autosave in editor,
 - pagination/search in My Presentations,
@@ -216,6 +230,5 @@ Possible next improvements:
 - tests (unit/integration/e2e).
 
 made for learning purose
-## License
 
-No license file is currently included. Add one (for example `MIT`) before open-source publishing.
+## License
