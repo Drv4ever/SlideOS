@@ -1,9 +1,26 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  ArrowLeft, 
+  Play, 
+  Save, 
+  Plus, 
+  Trash2, 
+  X, 
+  PlusCircle,
+  Loader2
+} from "lucide-react";
 import { Button } from "../components/ui/button";
 import { updatePresentation } from "../services/presentationService";
 
 const themePalette = {
+  fluent: {
+    primary: "#0078d4",
+    secondary: "#50e4ff",
+    background: "#f3f2f1",
+    text: "#201f1e",
+  },
   dalibio: {
     primary: "#6366f1",
     secondary: "#818cf8",
@@ -55,15 +72,25 @@ export default function PresentationPreview() {
 
   if (!initialPresentation) {
     return (
-      <div style={{ padding: 40 }}>
-        <p>No presentation found.</p>
-        <button onClick={() => navigate("/")}>Go Back</button>
+      <div className="p-10 text-center flex flex-col items-center gap-4 justify-center min-h-[50vh]">
+        <p className="text-slate-500 font-medium">No presentation found.</p>
+        <Button onClick={() => navigate("/")} variant="outline" className="cursor-pointer">
+          Go Back
+        </Button>
       </div>
     );
   }
 
   const [slides, setSlides] = useState(initialPresentation.slides);
+  const [title, setTitle] = useState(initialTitle);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Sync title from state changes if any
+  useEffect(() => {
+    if (state?.title) {
+      setTitle(state.title);
+    }
+  }, [state?.title]);
 
   /* ================= UPDATE FUNCTIONS ================= */
 
@@ -95,8 +122,8 @@ export default function PresentationPreview() {
     setSlides([
       ...slides,
       {
-        heading: "New Slide",
-        content: ["New point 1"],
+        heading: "New Slide Title",
+        content: ["New slide point 1"],
       },
     ]);
   };
@@ -115,7 +142,7 @@ export default function PresentationPreview() {
     try {
       setIsSaving(true);
       await updatePresentation(presentationId, {
-        title: initialTitle,
+        title: title.trim() || "Untitled Presentation",
         theme: themeId,
         slidesCount: slides.length,
         content: {
@@ -123,7 +150,10 @@ export default function PresentationPreview() {
           slides,
         },
       });
-      alert("Presentation updated successfully");
+      
+      // Dispatch refresh event to update sidebar
+      window.dispatchEvent(new CustomEvent('refresh-sidebar-decks'));
+      alert("Presentation saved successfully");
     } catch (error) {
       alert(error.message || "Failed to update presentation");
     } finally {
@@ -144,283 +174,178 @@ export default function PresentationPreview() {
   /* ================= UI ================= */
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: activeTheme.background,
-        padding: "24px",
-        fontFamily: "Inter, sans-serif",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "1100px",
-          margin: "0 auto 24px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "14px 18px",
-          borderRadius: "18px",
-          border: `1px solid ${activeTheme.primary}33`,
-          background: "rgba(255,255,255,0.78)",
-          backdropFilter: "blur(12px)",
-        }}
-      >
-        <button
-          onClick={() => navigate("/")}
-          type="button"
-          style={{
-            fontSize: 22,
-            fontWeight: 700,
-            border: "none",
-            background: "transparent",
-            cursor: "pointer",
-            backgroundImage: `linear-gradient(90deg, ${activeTheme.primary}, ${activeTheme.secondary})`,
-            WebkitBackgroundClip: "text",
-            color: "transparent",
-          }}
-        >
-          SlideOS
-        </button>
-        <div style={{ display: "flex", gap: 10 }}>
+    <div className="w-full max-w-4xl mx-auto flex flex-col min-h-screen py-4 px-2 select-none">
+      
+      {/* Sticky Editor Control Bar */}
+      <header className="sticky top-0 z-30 bg-slate-50/90 backdrop-blur-md pb-4 pt-2 border-b border-slate-200/50 mb-6 flex items-center justify-between gap-4">
+        
+        {/* Left: Back Arrow + Title Input */}
+        <div className="flex items-center gap-3 overflow-hidden">
+          <button
+            onClick={() => navigate("/")}
+            title="Back to generator"
+            className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 active:scale-95 transition-all cursor-pointer shrink-0"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          
+          <div className="flex flex-col overflow-hidden text-left">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="text-lg font-bold text-slate-800 bg-transparent border-b border-transparent focus:border-indigo-500/80 outline-none pb-0.5 truncate max-w-md"
+              placeholder="Presentation Title"
+              title="Click to rename"
+            />
+            <span className="text-[10px] text-indigo-600 font-bold tracking-wider uppercase mt-0.5 leading-none">
+              Outline Editor
+            </span>
+          </div>
+        </div>
+
+        {/* Right: Actions */}
+        <div className="flex items-center gap-2 shrink-0">
           <Button
             variant="outline"
-            onClick={() => navigate("/")}
+            onClick={handleSaveChanges}
+            disabled={!presentationId || isSaving}
+            className="flex items-center gap-1.5 border-slate-200 text-slate-700 bg-white hover:bg-slate-50 cursor-pointer h-9 px-3 rounded-lg text-sm"
           >
-            Back to Prompt
+            {isSaving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            <span>{isSaving ? "Saving..." : "Save Changes"}</span>
           </Button>
+
           <Button
-            onClick={() => navigate("/my-presentations")}
+            onClick={() => navigate("/presentation-view", { 
+              state: {
+                slides, 
+                theme: selectedTheme, 
+                textAmount, 
+                presentationId, 
+                title: title.trim(), 
+                themeId
+              } 
+            })}
             style={{
               background: `linear-gradient(135deg, ${activeTheme.primary}, ${activeTheme.secondary})`,
-              color: "#fff",
+              color: "#fff"
             }}
+            className="flex items-center gap-1.5 border-t border-white/35 border-x border-white/15 border-b-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_4px_12px_rgba(99,102,241,0.25)] hover:shadow-lg h-9 px-4 rounded-lg text-sm font-semibold cursor-pointer transition-all active:scale-[0.98]"
           >
-            My Presentations
+            <Play className="w-4 h-4" />
+            <span>Present</span>
           </Button>
         </div>
-      </div>
+      </header>
 
-      {/* HEADER */}
-      <div
-        style={{
-          maxWidth: "800px",
-          margin: "0 auto 30px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <h2 style={{ fontSize: 18, fontWeight: 600, color: activeTheme.text }}>
-          {initialTitle}
-        </h2>
-        <div style={{ fontSize: 14, color: "#6b7280" }}>
-          Outline Editor
-        </div>
-      </div>
-
-      {/* SLIDES */}
-      <div
-        style={{
-          maxWidth: "800px",
-          margin: "0 auto",
-          display: "flex",
-          flexDirection: "column",
-          gap: "16px",
-        }}
-      >
-        {slides.map((slide, slideIndex) => (
-          <div
-            key={slideIndex}
-            style={{
-              background: "#ffffff",
-              borderRadius: "12px",
-              padding: "20px",
-              display: "flex",
-              gap: "16px",
-              alignItems: "flex-start",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-              border: "1px solid #e5e7eb",
-            }}
-          >
-            {/* Slide Number */}
-            <div
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: "6px",
-                background: "#e5e7eb",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 13,
-                fontWeight: 600,
-                color: "#374151",
-              }}
+      {/* Slide Cards Canvas */}
+      <div className="flex-1 flex flex-col gap-6 max-w-3xl mx-auto w-full pb-16">
+        <AnimatePresence initial={false}>
+          {slides.map((slide, slideIndex) => (
+            <motion.div
+              key={slideIndex}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.25 }}
+              className="bg-white rounded-2xl border border-slate-200/70 p-6 flex gap-5 items-start shadow-[0_16px_40px_-12px_rgba(15,23,42,0.06),0_4px_12px_rgba(15,23,42,0.02)] relative hover:border-slate-350 hover:shadow-[0_20px_48px_-10px_rgba(15,23,42,0.1),0_4px_16px_rgba(15,23,42,0.03)] transition-all group"
             >
-              {slideIndex + 1}
-            </div>
+              {/* Slide Number Bubble */}
+              <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                {(slideIndex + 1).toString().padStart(2, '0')}
+              </div>
 
-            {/* Slide Content */}
-            <div style={{ flex: 1 }}>
-              {/* Editable Heading */}
-              <input
-                value={slide.heading}
-                onChange={(e) =>
-                  updateHeading(slideIndex, e.target.value)
-                }
-                style={{
-                  width: "100%",
-                  fontSize: 16,
-                  fontWeight: 600,
-                  border: "none",
-                  outline: "none",
-                  marginBottom: 8,
-                  color: "#111827",
-                }}
-              />
+              {/* Edit Details */}
+              <div className="flex-1 flex flex-col text-left">
+                
+                {/* 1. Editable Title Heading */}
+                <div className="flex flex-col gap-1 mb-4">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                    Slide Heading
+                  </label>
+                  <input
+                    value={slide.heading}
+                    onChange={(e) => updateHeading(slideIndex, e.target.value)}
+                    className="w-full text-base font-bold text-slate-800 bg-transparent outline-none border-b border-transparent focus:border-indigo-500/50 pb-0.5"
+                    placeholder="Enter slide heading"
+                  />
+                </div>
 
-              {/* Editable Bullets */}
-              <ul
-                style={{
-                  paddingLeft: "18px",
-                  margin: 0,
-                }}
-              >
-                {slide.content.map((point, bulletIndex) => (
-                  <li
-                    key={bulletIndex}
-                    style={{
-                      marginBottom: 6,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                    }}
-                  >
-                    <input
-                      value={point}
-                      onChange={(e) =>
-                        updateBullet(
-                          slideIndex,
-                          bulletIndex,
-                          e.target.value
-                        )
-                      }
-                      style={{
-                        flex: 1,
-                        border: "none",
-                        outline: "none",
-                        fontSize: 14,
-                        color: "#4b5563",
-                      }}
-                    />
+                {/* 2. Editable Bullet Points */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1.5">
+                    Slide Body Points
+                  </label>
+                  
+                  <div className="flex flex-col gap-2.5">
+                    {slide.content.map((point, bulletIndex) => (
+                      <div key={bulletIndex} className="flex items-center gap-3 group/bullet">
+                        {/* Custom Indigo Bullet Dash */}
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500/80 shrink-0" />
+                        
+                        <input
+                          value={point}
+                          onChange={(e) => updateBullet(slideIndex, bulletIndex, e.target.value)}
+                          className="flex-1 text-sm text-slate-600 bg-transparent outline-none border-b border-transparent focus:border-indigo-500/40 pb-0.5 font-sans"
+                          placeholder="Bullet point item"
+                        />
 
-                    <button
-                      onClick={() =>
-                        deleteBullet(
-                          slideIndex,
-                          bulletIndex
-                        )
-                      }
-                      style={{
-                        background: "transparent",
-                        border: "none",
-                        cursor: "pointer",
-                        color: "#9ca3af",
-                        fontSize: 14,
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </li>
-                ))}
-              </ul>
+                        {/* Hover close icon */}
+                        <button
+                          onClick={() => deleteBullet(slideIndex, bulletIndex)}
+                          className="text-slate-300 hover:text-red-500 hover:bg-slate-50 cursor-pointer opacity-0 group-hover/bullet:opacity-100 transition-opacity p-0.5 rounded-lg"
+                          title="Remove point"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-              {/* Add Bullet */}
+                {/* 3. Add Point Action */}
+                <button
+                  onClick={() => addBullet(slideIndex)}
+                  className="mt-3 text-[11px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1.5 cursor-pointer bg-indigo-50 hover:bg-indigo-100/70 border border-indigo-200/30 py-1 px-3 rounded-lg transition-all active:scale-[0.98] w-fit"
+                >
+                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>Add point</span>
+                </button>
+              </div>
+
+              {/* Delete Slide Button (Top Right of Card) */}
               <button
-                onClick={() => addBullet(slideIndex)}
-                style={{
-                  marginTop: 6,
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  color: "#6b7280",
-                  fontSize: 13,
-                }}
+                onClick={() => deleteSlide(slideIndex)}
+                className="absolute top-4 right-4 text-slate-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+                title="Delete slide"
               >
-                + Add point
+                <Trash2 className="w-4 h-4" />
               </button>
-            </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
 
-            {/* Delete Slide */}
-            <button
-              onClick={() => deleteSlide(slideIndex)}
-              style={{
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                color: "#9ca3af",
-                fontSize: 16,
-              }}
-            >
-              ✕
-            </button>
-          </div>
-        ))}
-
-        {/* Add Slide */}
-        <div
+        {/* Add Card dashed placeholder */}
+        <button
           onClick={addSlide}
-          style={{
-            background: "#e5e7eb",
-            borderRadius: "12px",
-            padding: "16px",
-            textAlign: "center",
-            cursor: "pointer",
-            fontSize: 14,
-            color: "#374151",
-          }}
+          className="w-full border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-white hover:shadow-xs rounded-2xl py-4 flex items-center justify-center gap-2 cursor-pointer transition-all text-slate-400 hover:text-indigo-600 text-sm font-semibold active:scale-[0.99] bg-slate-50/30"
         >
-          + Add card
-        </div>
+          <PlusCircle className="w-4.5 h-4.5" />
+          <span>Add New Slide</span>
+        </button>
 
-        {/* Footer */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            fontSize: 12,
-            color: "#6b7280",
-            marginTop: 10,
-          }}
-        >
+        {/* Footer Statistics */}
+        <div className="flex justify-between items-center text-[10px] md:text-xs text-slate-400 font-medium px-2 py-1 mt-1">
           <div>{slides.length} cards total</div>
-          <div>{totalCharacters}/20000</div>
-
+          <div>{totalCharacters}/20000 characters</div>
         </div>
-
       </div>
 
-
-     {/* button create presentation  */}
-     <div className="flex justify-center item-center">
-
-      <Button
-      onClick={()=>navigate("/presentation-view",{ state:{slides, theme: selectedTheme, textAmount, presentationId, title: initialTitle, themeId}})}  // sends all teh content of slides to the new route
-      className="px-8 text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-xl  transform hover:scale-105 transition-all duration-300"
-    >
-      Generate Presentation   
-
-      </Button>
-      <Button
-      onClick={handleSaveChanges}
-      disabled={!presentationId || isSaving}
-      className="ml-4 px-8 text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-xl transform hover:scale-105 transition-all duration-300"
-      >
-        {isSaving ? "Saving..." : "Save Changes"}
-      </Button>
-      
-     </div>
     </div>
   );
 }

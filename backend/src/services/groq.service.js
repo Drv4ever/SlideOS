@@ -13,7 +13,20 @@ export async function generateWithGroq({
     throw new Error("GROQ_API_KEY is not defined. Check your .env file.");
   }
 
-  const systemPrompt = `You are a PowerPoint presentation generator.
+  let textAmountGuideline = "";
+  if (textAmount === "minimal") {
+    textAmountGuideline = "Exactly 1-2 bullet points per slide. Each point must be a single short sentence (max 8 words). Very brief.";
+  } else if (textAmount === "concise") {
+    textAmountGuideline = "Exactly 2-3 bullet points per slide. Each point must be a clean, direct sentence (10-15 words).";
+  } else if (textAmount === "detailed") {
+    textAmountGuideline = "Exactly 3-4 bullet points per slide. Each point must be a complete, well-formed, highly informative sentence providing clear context.";
+  } else if (textAmount === "extensive") {
+    textAmountGuideline = "Exactly 4-6 rich bullet points per slide. Each point must contain 2-3 detailed, descriptive sentences with comprehensive explanations, facts, or technical details.";
+  } else {
+    textAmountGuideline = `Follow text density level: ${textAmount}`;
+  }
+
+  const systemPrompt = `You are a professional PowerPoint presentation generator.
 Return STRICT JSON ONLY in this format:
 {
   "title": string,
@@ -28,7 +41,7 @@ Return STRICT JSON ONLY in this format:
 
 Rules:
 - Slides count = ${slides}
-- Text detail = ${textAmount}
+- Text density guideline = ${textAmountGuideline}
 - Theme = ${theme}
 - Tone = ${tone}
 - Audience = ${audience || "general"}
