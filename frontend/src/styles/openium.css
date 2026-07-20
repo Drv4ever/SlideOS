@@ -1,0 +1,99 @@
+/* Openium — Excalidraw-inspired minimalist hand-drawn aesthetic
+   Applied via the `.openium` class on a container. Adds a soft, sketchy,
+   paper-like feel WITHOUT adding any drawing/whiteboard features. */
+
+.openium {
+  --openium-ink: #1e1e1e;
+  --openium-stroke: #2b2b2b;
+  --openium-paper: #fbfbf7;
+  --openium-accent: #6965db;
+  --openium-radius: 14px;
+}
+
+/* Sketchy, slightly irregular borders reminiscent of hand-drawn strokes */
+.openium .openium-card,
+.openium .openium-panel {
+  background: var(--openium-paper);
+  border: 1.6px solid var(--openium-stroke);
+  border-radius: var(--openium-radius);
+  box-shadow: 2px 3px 0 0 rgba(43, 43, 43, 0.12);
+  position: relative;
+}
+
+/* A second offset outline gives the classic "double sketch" look */
+.openium .openium-card::after,
+.openium .openium-panel::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px dashed rgba(43, 43, 43, 0.18);
+  border-radius: calc(var(--openium-radius) - 4px);
+  pointer-events: none;
+}
+
+/* Tiny hand-drawn corner ticks */
+.openium .openium-card::before,
+.openium .openium-panel::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  width: 12px;
+  height: 12px;
+  border-top: 1.6px solid var(--openium-accent);
+  border-left: 1.6px solid var(--openium-accent);
+  border-top-left-radius: 6px;
+  pointer-events: none;
+}
+
+/* Minimalist rough buttons */
+.openium .openium-btn {
+  border: 1.6px solid var(--openium-stroke);
+  background: var(--openium-paper);
+  border-radius: 10px;
+  box-shadow: 1.5px 2px 0 0 rgba(43, 43, 43, 0.14);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.openium .openium-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 2.5px 3px 0 0 rgba(43, 43, 43, 0.16);
+}
+.openium .openium-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 0 0 0 0 rgba(43, 43, 43, 0.12);
+}
+
+/* Hand-drawn accent underline used for the Openium wordmark */
+.openium .openium-wordmark {
+  font-family: "Comic Sans MS", "Segoe Print", "Bradley Hand", cursive;
+  letter-spacing: 0.5px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.openium .openium-wordmark::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 6px;
+  background: radial-gradient(circle at 10% 60%, var(--openium-accent) 0 28%, transparent 30%) 0 0 / 14px 6px repeat-x;
+  opacity: 0.8;
+}
+
+/* Soft paper grain for the drafting surface */
+.openium .openium-canvas {
+  background-color: #f1f0ea !important;
+  background-image:
+    radial-gradient(circle at 50% 40%, rgba(105, 101, 219, 0.05) 0%, transparent 70%),
+    repeating-linear-gradient(0deg, rgba(43, 43, 43, 0.025) 0 1px, transparent 1px 26px),
+    repeating-linear-gradient(90deg, rgba(43, 43, 43, 0.025) 0 1px, transparent 1px 26px) !important;
+}
+
+.openium .openium-slide {
+  border: 1.8px solid var(--openium-stroke);
+  border-radius: 12px;
+  box-shadow: 3px 4px 0 0 rgba(43, 43, 43, 0.15);
+}
