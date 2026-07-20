@@ -127,13 +127,25 @@ export default function PresentationView() {
       layoutPattern: slide.layoutPattern || ["stripe", "split", "card", "header", "plain"][slideIndex % 5],
       elements: (() => {
         const elements = [];
-        const headingLines = Math.max(1, Math.ceil((slide.heading || "").length / 30));
+        const richElements = Array.isArray(slide.elements) ? slide.elements : [];
+        const headingText =
+          slide.heading ||
+          richElements.find((el) => el.type === "heading")?.content ||
+          "";
+        let points;
+        if (Array.isArray(slide.content)) {
+          points = slide.content;
+        } else {
+          const bulletEl = richElements.find((el) => el.type === "bullet");
+          points = bulletEl?.items || [];
+        }
+        const headingLines = Math.max(1, Math.ceil(headingText.length / 30));
         const headingHeight = Math.max(80, headingLines * 42);
         const isTitleSlide = slideIndex === 0;
         elements.push({
           id: `title-${slideIndex}`,
           type: "text",
-          content: slide.heading,
+          content: headingText,
           x: 100,
           y: 70,
           fontSize: isTitleSlide
@@ -147,7 +159,7 @@ export default function PresentationView() {
         });
 
         let currentY = 70 + headingHeight + 25;
-        slide.content.forEach((point, i) => {
+        points.forEach((point, i) => {
           const lines = Math.max(
             1,
             Math.ceil((point || "").length / textLayout.charsPerLine)
