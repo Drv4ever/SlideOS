@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { Rnd } from "react-rnd";
 import PptxGenJS from "pptxgenjs";
 import { updatePresentation } from "../services/presentationService";
+import { getSlideStyle } from "../utils/slideStyle";
 import {
   Copy,
   Type,
@@ -85,6 +86,12 @@ export default function PresentationView() {
 
   const textLayout = getTextLayoutSettings();
 
+  const slideStyle = getSlideStyle({
+    topic: state?.title || rawSlides?.[0]?.heading || "",
+    theme: incomingTheme,
+    sizes: { headingSize: textLayout.headingSize, bulletSize: textLayout.bulletSize },
+  });
+
   const convertSlides = (slides) => {
     if (!slides.length) {
       return [
@@ -122,18 +129,21 @@ export default function PresentationView() {
         const elements = [];
         const headingLines = Math.max(1, Math.ceil((slide.heading || "").length / 30));
         const headingHeight = Math.max(80, headingLines * 42);
+        const isTitleSlide = slideIndex === 0;
         elements.push({
           id: `title-${slideIndex}`,
           type: "text",
           content: slide.heading,
           x: 100,
           y: 70,
-          fontSize: textLayout.headingSize,
+          fontSize: isTitleSlide
+            ? slideStyle.titleSlideHeadingSize
+            : slideStyle.headingSize,
           bold: true,
-          color: defaultTheme.text,
+          color: slideStyle.headingColor,
           width: 760,
-          height: headingHeight,
-          fontFamily: headingFont,
+          height: isTitleSlide ? Math.round(headingHeight * 1.3) : headingHeight,
+          fontFamily: slideStyle.headingFont,
         });
 
         let currentY = 70 + headingHeight + 25;
@@ -149,12 +159,12 @@ export default function PresentationView() {
             content: point,
             x: 120,
             y: currentY,
-            fontSize: textLayout.bulletSize,
+            fontSize: slideStyle.bulletSize,
             bold: false,
-            color: defaultTheme.text,
+            color: slideStyle.bulletColor,
             width: 720,
             height: bulletHeight,
-            fontFamily: bodyFont,
+            fontFamily: slideStyle.bodyFont,
           });
           currentY += bulletHeight + textLayout.bulletGap;
         });
@@ -399,6 +409,7 @@ export default function PresentationView() {
             fontSize: el.fontSize,
             bold: el.bold,
             color: el.color.replace("#", ""),
+            fontFace: el.fontFamily || undefined,
             fit: "shrink",
             margin: 2,
           });
