@@ -120,12 +120,18 @@ export default function LandingPage({ onAuthSuccess, theme }) {
           </div>
 
           {/* Hero Headings with Cursive accents */}
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-slate-850 leading-tight">
-            Structure your slides <span className="font-cursive text-blue-600 font-medium lowercase text-5xl sm:text-6xl md:text-7xl block sm:inline relative sm:top-1 pr-1">beautifully</span> in seconds.
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-slate-850 leading-[1.1]">
+            Structure your slides{' '}
+            <span className="font-cursive text-blue-600 font-medium lowercase text-[1.15em] relative inline-block pr-1">
+              beautifully
+            </span>{' '}
+            in seconds.
           </h1>
 
-          <p className="text-sm sm:text-base text-slate-500 font-medium leading-relaxed">
-            Tell SlideOS your topic, choose a curated style, and get a fully formatted, interactive presentation deck. Ready to edit, present, or export.
+          <p className="text-sm sm:text-base text-slate-500 font-medium leading-relaxed max-w-md">
+            Tell SlideOS your topic, choose a curated style, and get a fully formatted presentation deck.
+            <br className="hidden sm:block" />
+            Ready to edit, present, or export.
           </p>
 
           {/* Interactive Spotlight Prompt input */}
@@ -181,7 +187,7 @@ export default function LandingPage({ onAuthSuccess, theme }) {
             )}
             
             {mockSlides[activeMockIndex].accent === "stripe" && (
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 pointer-events-none z-0" />
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 to-cyan-400 pointer-events-none z-0" />
             )}
 
             {mockSlides[activeMockIndex].accent === "card" && (
