@@ -13,51 +13,9 @@ import {
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { updatePresentation } from "../services/presentationService";
+import { normalizePresentation, themeToColors, CURATED_LOOKUP } from "../utils/slideModel";
 
-const themePalette = {
-  fluent: {
-    primary: "#0078d4",
-    secondary: "#50e4ff",
-    background: "#f3f2f1",
-    text: "#201f1e",
-  },
-  dalibio: {
-    primary: "#6366f1",
-    secondary: "#818cf8",
-    background: "#f0f4ff",
-    text: "#1e1b4b",
-  },
-  noir: {
-    primary: "#18181b",
-    secondary: "#3f3f46",
-    background: "#f5f5f5",
-    text: "#09090b",
-  },
-  cornflower: {
-    primary: "#6366f1",
-    secondary: "#a5b4fc",
-    background: "#eef2ff",
-    text: "#312e81",
-  },
-  indigo: {
-    primary: "#4f46e5",
-    secondary: "#6366f1",
-    background: "#e0e7ff",
-    text: "#3730a3",
-  },
-  orbit: {
-    primary: "#8b5cf6",
-    secondary: "#a78bfa",
-    background: "#faf5ff",
-    text: "#581c87",
-  },
-  cosmos: {
-    primary: "#ec4899",
-    secondary: "#f472b6",
-    background: "#fdf4ff",
-    text: "#831843",
-  },
-};
+const themePalette = CURATED_LOOKUP;
 
 export default function PresentationPreview() {
   const { state } = useLocation();
@@ -81,8 +39,13 @@ export default function PresentationPreview() {
     );
   }
 
-  const [slides, setSlides] = useState(initialPresentation.slides);
-  const [title, setTitle] = useState(initialTitle);
+  // Normalize so both legacy {heading,content} and new {elements,layout} formats work
+  const normalized = normalizePresentation(
+    { title: initialTitle, theme: selectedTheme, slides: initialPresentation.slides },
+    themeId
+  );
+  const [slides, setSlides] = useState(normalized.slides);
+  const [title, setTitle] = useState(normalized.title);
   const [isSaving, setIsSaving] = useState(false);
 
   // Sync title from state changes if any
@@ -94,27 +57,43 @@ export default function PresentationPreview() {
 
   /* ================= UPDATE FUNCTIONS ================= */
 
+  const getBulletElement = (slide) =>
+    slide.elements?.find((el) => el.type === "bullet");
+
   const updateHeading = (index, value) => {
     const updated = [...slides];
     updated[index].heading = value;
+    const headingEl = updated[index].elements.find((el) => el.type === "heading");
+    if (headingEl) headingEl.content = value;
     setSlides(updated);
   };
 
   const updateBullet = (slideIndex, bulletIndex, value) => {
     const updated = [...slides];
-    updated[slideIndex].content[bulletIndex] = value;
+    let bulletEl = getBulletElement(updated[slideIndex]);
+    if (!bulletEl) {
+      bulletEl = { type: "bullet", content: "", items: [] };
+      updated[slideIndex].elements.push(bulletEl);
+    }
+    bulletEl.items[bulletIndex] = value;
     setSlides(updated);
   };
 
   const addBullet = (slideIndex) => {
     const updated = [...slides];
-    updated[slideIndex].content.push("New point");
+    let bulletEl = getBulletElement(updated[slideIndex]);
+    if (!bulletEl) {
+      bulletEl = { type: "bullet", content: "", items: [] };
+      updated[slideIndex].elements.push(bulletEl);
+    }
+    bulletEl.items.push("New point");
     setSlides(updated);
   };
 
   const deleteBullet = (slideIndex, bulletIndex) => {
     const updated = [...slides];
-    updated[slideIndex].content.splice(bulletIndex, 1);
+    const bulletEl = getBulletElement(updated[slideIndex]);
+    if (bulletEl) bulletEl.items.splice(bulletIndex, 1);
     setSlides(updated);
   };
 
@@ -122,8 +101,12 @@ export default function PresentationPreview() {
     setSlides([
       ...slides,
       {
+        layout: "header",
         heading: "New Slide Title",
-        content: ["New slide point 1"],
+        elements: [
+          { type: "heading", content: "New Slide Title" },
+          { type: "bullet", content: "", items: ["New slide point 1"] },
+        ],
       },
     ]);
   };
@@ -146,8 +129,10 @@ export default function PresentationPreview() {
         theme: themeId,
         slidesCount: slides.length,
         content: {
-          ...initialPresentation,
           slides,
+          editorSlides: slides,
+          slideNotes: [],
+          textAmount,
         },
       });
       
@@ -164,11 +149,11 @@ export default function PresentationPreview() {
   /* ================= CHARACTER COUNT ================= */
 
   const totalCharacters = slides.reduce((acc, slide) => {
-    return (
-      acc +
-      slide.heading.length +
-      slide.content.join("").length
-    );
+    const elementChars = (slide.elements || []).reduce((s, el) => {
+      if (el.type === "bullet") return s + (el.items?.join("")?.length || 0);
+      return s + (el.content?.length || 0);
+    }, 0);
+    return acc + (slide.heading?.length || 0) + elementChars;
   }, 0);
 
   /* ================= UI ================= */
@@ -283,7 +268,7 @@ export default function PresentationPreview() {
                   </label>
                   
                   <div className="flex flex-col gap-2.5">
-                    {slide.content.map((point, bulletIndex) => (
+                    {(getBulletElement(slide)?.items || []).map((point, bulletIndex) => (
                       <div key={bulletIndex} className="flex items-center gap-3 group/bullet">
                         {/* Custom Indigo Bullet Dash */}
                         <span className="w-1.5 h-1.5 rounded-full bg-indigo-500/80 shrink-0" />
