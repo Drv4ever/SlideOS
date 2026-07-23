@@ -43,7 +43,7 @@ const GENRE_KEYWORDS = {
 };
 
 const GENRE_PROFILES = {
-  business: { heading: "Montserrat", body: "Inter", accent: "#1d4ed8" },
+  business: { heading: "Montserrat", body: "Inter", accent: "#ea580c" },
   finance: { heading: "Montserrat", body: "Inter", accent: "#047857" },
   tech: { heading: "Space Grotesk", body: "IBM Plex Sans", accent: "#7c3aed" },
   creative: { heading: "Playfair Display", body: "Poppins", accent: "#db2777" },
@@ -90,9 +90,9 @@ export function getSlideStyle({ topic = "", theme = {}, sizes = {} } = {}) {
   const themeColors = theme?.colors || {};
   const themeFonts = theme?.fontFamily || theme?.fonts || {};
 
-  const headingColor = profile.accent || themeColors.primary || "#312e81";
+  const headingColor = profile.accent || themeColors.primary || "#7c2d12";
   const bulletColor = themeColors.text || shadeColor(headingColor, -20) || "#334155";
-  const accentColor = profile.accent || themeColors.secondary || headingColor;
+  const accentColor = profile.accent || themeColors.accent || headingColor;
 
   const headingFont = profile.heading || themeFonts.heading || "Poppins";
   const bodyFont = profile.body || themeFonts.body || "Inter";

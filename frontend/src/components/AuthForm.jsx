@@ -16,9 +16,10 @@ export function AuthForm({ onAuthSuccess, theme, isModal = false }) {
 
   const palette = theme?.colors || {
     primary: "#0078d4",
-    secondary: "#50e4ff",
-    background: "#f8fafc",
-    text: "#0f172a",
+    accent: "#ffb900",
+    background: "#ffffff",
+    surface: "#f3f2f1",
+    text: "#201f1e",
   };
 
   const handleAuthSuccess = (data) => {
@@ -80,7 +81,7 @@ export function AuthForm({ onAuthSuccess, theme, isModal = false }) {
   return (
     <div className={`w-full flex justify-center items-center select-none font-jakarta ${isModal ? '' : 'py-12 px-4'}`}>
       <div className={`w-full ${isModal ? 'bg-transparent' : 'max-w-sm border border-slate-200/80 bg-white p-6 rounded-2xl shadow-[0_20px_50px_rgba(15,23,42,0.06)] relative'}`}>
-        {!isModal && <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-600 to-cyan-400" />}
+        {!isModal && <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-600 to-cyan-400" />}
         
         {/* Tab Selection */}
         <div className="flex gap-1.5 rounded-xl bg-slate-100 p-1 mb-6">
@@ -89,7 +90,7 @@ export function AuthForm({ onAuthSuccess, theme, isModal = false }) {
             onClick={() => setMode("login")}
             className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border-0 outline-none ${
               mode === "login"
-                ? "bg-white text-blue-600 shadow-2xs border border-slate-200/50"
+                ? "bg-white text-orange-600 shadow-2xs border border-slate-200/50"
                 : "text-slate-500 hover:text-slate-800"
             }`}
           >
@@ -100,7 +101,7 @@ export function AuthForm({ onAuthSuccess, theme, isModal = false }) {
             onClick={() => setMode("register")}
             className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border-0 outline-none ${
               mode === "register"
-                ? "bg-white text-blue-600 shadow-2xs border border-slate-200/50"
+                ? "bg-white text-orange-600 shadow-2xs border border-slate-200/50"
                 : "text-slate-500 hover:text-slate-800"
             }`}
           >
@@ -130,7 +131,7 @@ export function AuthForm({ onAuthSuccess, theme, isModal = false }) {
                 onChange={(e) => setName(e.target.value)}
                 required
                 placeholder="John Doe"
-                className="h-10 rounded-xl border-slate-200 bg-slate-50 text-sm font-medium focus:ring-2 focus:ring-blue-500/25"
+                className="h-10 rounded-xl border-slate-200 bg-slate-50 text-sm font-medium focus:ring-2 focus:ring-orange-500/25"
               />
             </div>
           )}
@@ -143,7 +144,7 @@ export function AuthForm({ onAuthSuccess, theme, isModal = false }) {
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="you@example.com"
-              className="h-10 rounded-xl border-slate-200 bg-slate-50 text-sm font-medium focus:ring-2 focus:ring-blue-500/25"
+              className="h-10 rounded-xl border-slate-200 bg-slate-50 text-sm font-medium focus:ring-2 focus:ring-orange-500/25"
             />
           </div>
 
@@ -156,18 +157,15 @@ export function AuthForm({ onAuthSuccess, theme, isModal = false }) {
               required
               minLength={8}
               placeholder="••••••••"
-              className="h-10 rounded-xl border-slate-200 bg-slate-50 text-sm font-medium focus:ring-2 focus:ring-blue-500/25"
+              className="h-10 rounded-xl border-slate-200 bg-slate-50 text-sm font-medium focus:ring-2 focus:ring-orange-500/25"
             />
           </div>
 
           <Button
+            variant="destructive"
             type="submit"
-            className="mt-2 h-11 w-full rounded-xl text-xs font-bold cursor-pointer transition-all active:scale-[0.98] border-t border-white/20 border-x border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_4px_12px_rgba(37,99,235,0.2)]"
+            className="mt-2 h-11 w-full rounded-xl text-xs font-bold cursor-pointer transition-all active:scale-[0.98] border-t border-white/20 border-x border-white/10"
             disabled={loading}
-            style={{
-              background: `linear-gradient(135deg, ${palette.primary}, ${palette.secondary})`,
-              color: "#fff",
-            }}
           >
             {loading ? (
               <span className="flex items-center gap-1.5 justify-center">

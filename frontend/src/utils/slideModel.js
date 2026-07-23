@@ -36,10 +36,12 @@ export function normalizePresentation(data, fallbackThemeId = "cornflower") {
 
 export function themeToColors(theme) {
   return {
-    primary: theme?.colors?.primary || "#6366f1",
-    secondary: theme?.colors?.secondary || "#818cf8",
+    primary: theme?.colors?.primary || "#f97316",
+    accent: theme?.colors?.accent || "#fb923c",
     background: theme?.colors?.background || "#ffffff",
+    surface: theme?.colors?.surface || "#f5f5f5",
+    border: theme?.colors?.border || "#e5e7eb",
     text: theme?.colors?.text || "#111827",
-    accent: theme?.colors?.accent || theme?.colors?.secondary || "#818cf8",
+    textMuted: theme?.colors?.textMuted || "#6b7280",
   };
 }

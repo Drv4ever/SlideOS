@@ -25,6 +25,20 @@ import {
   Plus
 } from "lucide-react";
 import { Button } from "../components/ui/button";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarProvider,
+  SidebarTrigger,
+} from "../components/ui/sidebar";
 
 export default function PresentationView() {
   const { state } = useLocation();
@@ -42,10 +56,13 @@ export default function PresentationView() {
   const [inspectorTab, setInspectorTab] = useState('slides');
 
   const defaultTheme = {
-    primary: incomingTheme?.colors?.primary || "#6366f1",
-    secondary: incomingTheme?.colors?.secondary || "#818cf8",
+    primary: incomingTheme?.colors?.primary || "#f97316",
+    accent: incomingTheme?.colors?.accent || "#fb923c",
     background: incomingTheme?.colors?.background || "#ffffff",
+    surface: incomingTheme?.colors?.surface || "#f5f5f5",
+    border: incomingTheme?.colors?.border || "#e5e7eb",
     text: incomingTheme?.colors?.text || "#111827",
+    textMuted: incomingTheme?.colors?.textMuted || "#6b7280",
   };
   const bodyFont =
     incomingTheme?.fontFamily?.body ||
@@ -213,8 +230,7 @@ export default function PresentationView() {
   }, [presentIndex, isPresenting]);
 
   const updateSlideBackground = (bg) => {
-    const updated = [...slides];
-    updated[activeIndex].background = bg;
+    const updated = slides.map((slide) => ({ ...slide, background: bg }));
     setSlides(updated);
   };
 
@@ -532,7 +548,7 @@ export default function PresentationView() {
         applyTheme({
           background: {
             type: "gradient",
-            value: "linear-gradient(135deg, #4f46e5, #818cf8)",
+            value: "linear-gradient(135deg, #ea580c, #fb923c)",
           },
           textColor: "#ffffff",
         }, true);
@@ -589,13 +605,11 @@ export default function PresentationView() {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-100 select-none text-slate-800 font-sans">
-      
-      {/* 1. LEFT PROPERTY INSPECTOR PANEL */}
-      <aside className="w-80 bg-slate-50 border-r border-slate-200 flex flex-col justify-between shrink-0 h-full shadow-xs relative z-20 text-slate-700">
+    <SidebarProvider className="bg-muted text-foreground font-sans select-none">
+      <Sidebar collapsible="offcanvas" variant="sidebar">
         
-        {/* Top Header Section */}
-        <div className="flex flex-col border-b border-slate-200 p-4">
+        <SidebarHeader>
+        <div className="flex flex-col p-4">
           <button 
             onClick={() => navigate("/preview", { 
               state: {
@@ -606,38 +620,42 @@ export default function PresentationView() {
                 textAmount
               } 
             })}
-            className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-655 transition-colors w-fit cursor-pointer mb-3"
+            className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors w-fit cursor-pointer mb-3"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to Outline</span>
+            <span className="group-data-[collapsible=icon]:hidden">Back to Outline</span>
           </button>
           
           <input
             value={presentationTitle}
             onChange={(e) => setPresentationTitle(e.target.value)}
             placeholder="Untitled Presentation"
-            className="w-full text-base font-bold text-slate-800 bg-transparent border-b border-transparent focus:border-indigo-500/80 outline-none pb-0.5"
+            className="w-full text-base font-bold text-foreground bg-transparent border-b border-transparent focus:border-orange-500/80 outline-none pb-0.5"
             title="Click to rename presentation"
           />
         </div>
+      </SidebarHeader>
 
+      <SidebarContent>
         {/* Tab Selection */}
-        <div className="flex border-b border-slate-200 p-1 bg-slate-100/70 m-4 rounded-xl gap-1">
+        <div className="flex p-1 bg-muted/70 mx-3 rounded-xl gap-1">
           <button
             onClick={() => setInspectorTab('slides')}
-            className={`flex-1 text-center py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              inspectorTab === 'slides' ? 'bg-white text-indigo-650 shadow-2xs border border-slate-200/50' : 'text-slate-500 hover:text-slate-800'
+            className={`flex items-center justify-center gap-1.5 flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              inspectorTab === 'slides' ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-2xs border border-border/50' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            Slides
+            <Layers className="w-3.5 h-3.5 shrink-0" />
+            <span className="group-data-[collapsible=icon]:hidden">Slides</span>
           </button>
           <button
             onClick={() => setInspectorTab('design')}
-            className={`flex-1 text-center py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              inspectorTab === 'design' ? 'bg-white text-indigo-650 shadow-2xs border border-slate-200/50' : 'text-slate-500 hover:text-slate-800'
+            className={`flex items-center justify-center gap-1.5 flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              inspectorTab === 'design' ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-2xs border border-border/50' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            Design
+            <Palette className="w-3.5 h-3.5 shrink-0" />
+            <span className="group-data-[collapsible=icon]:hidden">Design</span>
           </button>
         </div>
 
@@ -649,24 +667,24 @@ export default function PresentationView() {
               
               {/* Quick Actions Panel */}
               <div className="flex flex-col gap-2 shrink-0">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-1">
                   Actions
                 </span>
                 <div className="grid grid-cols-2 gap-2">
-                  <button onClick={duplicateSlide} className="flex items-center justify-center gap-1.5 py-2 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 text-xs font-bold text-slate-600 transition-all cursor-pointer">
-                    <Copy className="w-3.5 h-3.5 text-slate-400" />
+                  <button onClick={duplicateSlide} className="flex items-center justify-center gap-1.5 py-2 border border-border rounded-xl bg-sidebar-accent hover:bg-sidebar-accent/80 text-xs font-bold text-sidebar-accent-foreground transition-all cursor-pointer">
+                    <Copy className="w-3.5 h-3.5 text-muted-foreground" />
                     <span>Duplicate</span>
                   </button>
-                  <button onClick={addNewSlide} className="flex items-center justify-center gap-1.5 py-2 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 text-xs font-bold text-slate-600 transition-all cursor-pointer">
-                    <Plus className="w-3.5 h-3.5 text-slate-400" />
+                  <button onClick={addNewSlide} className="flex items-center justify-center gap-1.5 py-2 border border-border rounded-xl bg-sidebar-accent hover:bg-sidebar-accent/80 text-xs font-bold text-sidebar-accent-foreground transition-all cursor-pointer">
+                    <Plus className="w-3.5 h-3.5 text-muted-foreground" />
                     <span>Add Slide</span>
                   </button>
-                  <button onClick={addTextBox} className="flex items-center justify-center gap-1.5 py-2 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 text-xs font-bold text-slate-600 transition-all cursor-pointer">
-                    <Type className="w-3.5 h-3.5 text-slate-400" />
+                  <button onClick={addTextBox} className="flex items-center justify-center gap-1.5 py-2 border border-border rounded-xl bg-sidebar-accent hover:bg-sidebar-accent/80 text-xs font-bold text-sidebar-accent-foreground transition-all cursor-pointer">
+                    <Type className="w-3.5 h-3.5 text-muted-foreground" />
                     <span>Add Text</span>
                   </button>
-                  <button onClick={() => fileInputRef.current.click()} className="flex items-center justify-center gap-1.5 py-2 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 text-xs font-bold text-slate-600 transition-all cursor-pointer">
-                    <ImageIcon className="w-3.5 h-3.5 text-slate-400" />
+                  <button onClick={() => fileInputRef.current.click()} className="flex items-center justify-center gap-1.5 py-2 border border-border rounded-xl bg-sidebar-accent hover:bg-sidebar-accent/80 text-xs font-bold text-sidebar-accent-foreground transition-all cursor-pointer">
+                    <ImageIcon className="w-3.5 h-3.5 text-muted-foreground" />
                     <span>Add Image</span>
                   </button>
                 </div>
@@ -683,24 +701,24 @@ export default function PresentationView() {
               {/* Thumbnails list - flex-1 with min-h-0 and overflow-y-auto is the single scrollbar container */}
               <div className="flex-1 flex flex-col min-h-0 gap-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none">
                     Slide Deck ({slides.length})
                   </span>
                 </div>
                 
-                <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-3.5 mt-1">
+                <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-3.5 mt-1 scroll-smooth [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-foreground/20">
                   {slides.map((slide, index) => (
                     <div
                       key={index}
                       onClick={() => setActiveIndex(index)}
                       className={`flex flex-col p-2.5 rounded-xl border-2 text-left cursor-pointer transition-all hover:shadow-xs group relative ${
                         index === activeIndex
-                          ? "border-indigo-600 bg-indigo-50/40 shadow-xs"
-                          : "border-slate-200 bg-white hover:border-slate-350"
+                          ? "border-orange-600 bg-sidebar-accent/80 shadow-xs"
+                          : "border-border bg-sidebar-accent hover:border-border"
                       }`}
                     >
                       <div className="flex justify-between items-center mb-1.5">
-                        <span className={`text-[10px] font-bold ${index === activeIndex ? 'text-indigo-600' : 'text-slate-400'}`}>
+                        <span className={`text-[10px] font-bold ${index === activeIndex ? 'text-orange-600' : 'text-muted-foreground'}`}>
                           SLIDE {(index + 1).toString().padStart(2, '0')}
                         </span>
                         
@@ -710,7 +728,7 @@ export default function PresentationView() {
                               e.stopPropagation();
                               deleteSlide(index);
                             }}
-                            className="text-slate-300 hover:text-red-500 hover:bg-slate-100 p-0.5 rounded-md opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+                            className="text-muted-foreground/70 hover:text-red-500 hover:bg-muted p-0.5 rounded-md opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
                             title="Remove slide"
                           >
                             <X className="w-3.5 h-3.5" />
@@ -720,21 +738,21 @@ export default function PresentationView() {
 
                       {/* Mini Slide Canvas Preview Box */}
                       <div
-                        className="w-full h-16 rounded-lg border border-slate-200 overflow-hidden relative shadow-[inset_0_1px_3px_rgba(0,0,0,0.02)]"
-                        style={{ background: slide.background?.value || "#ffffff" }}
+                        className="w-full h-16 rounded-lg border border-border overflow-hidden relative shadow-[inset_0_1px_3px_rgba(0,0,0,0.02)]"
+                        style={{ background: slide.background?.value || "var(--sidebar-accent)" }}
                       >
                         {/* Microsoft Fluent Theme Mini Accents */}
                         {themeIdState === "fluent" && (
                           <>
                             <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-cyan-400/20 blur-xs pointer-events-none z-0" />
                             <div className="absolute -bottom-4 -left-4 w-9 h-9 rounded-full bg-purple-500/10 blur-xs pointer-events-none z-0" />
-                            <div className="absolute top-0 left-0 right-0 h-0.5 bg-blue-600 pointer-events-none z-0" />
+                            <div className="absolute top-0 left-0 right-0 h-0.5 bg-orange-600 pointer-events-none z-0" />
                           </>
                         )}
                         <div
                           className="text-[9px] font-bold truncate max-w-full px-2 py-1 select-none relative z-10"
                           style={{
-                            color: slide.elements.find((el) => el.type === "text")?.color || "#111827",
+                            color: slide.elements.find((el) => el.type === "text")?.color || "var(--sidebar-foreground)",
                             fontFamily: `${headingFont}, sans-serif`
                           }}
                         >
@@ -748,11 +766,11 @@ export default function PresentationView() {
             </div>
           ) : (
             /* DESIGN CONFIGS TAB - Single scrollbar if contents grow */
-            <div className="flex flex-col gap-5 text-left overflow-y-auto pr-1 flex-1">
+            <div className="flex flex-col gap-5 text-left overflow-y-auto pr-1 flex-1 scroll-smooth [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-foreground/20">
               
               {/* Background Color Picker */}
               <div className="flex flex-col gap-2 shrink-0">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none">
                   Slide Fill Color
                 </span>
                 <div className="flex items-center gap-3">
@@ -767,7 +785,7 @@ export default function PresentationView() {
                     }
                     className="w-12 h-10 border-0 rounded-xl cursor-pointer bg-transparent shrink-0 shadow-sm outline-none"
                   />
-                  <div className="flex-1 text-xs text-slate-500 font-mono select-all bg-white border border-slate-200 py-2 px-3 rounded-xl shadow-2xs">
+                  <div className="flex-1 text-xs text-sidebar-accent-foreground font-mono select-all bg-sidebar-accent border border-border py-2 px-3 rounded-xl shadow-2xs">
                     {activeSlide.background.value}
                   </div>
                 </div>
@@ -776,7 +794,7 @@ export default function PresentationView() {
               {/* Layout Patterns Selection */}
               {/* Theme buttons grid */}
               <div className="flex flex-col gap-2.5">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none">
                   Quick Themes
                 </span>
                 <div className="grid grid-cols-2 gap-2">
@@ -784,9 +802,9 @@ export default function PresentationView() {
                     <button 
                       key={item.label} 
                       onClick={item.apply} 
-                      className="flex items-center gap-1.5 justify-center py-2 px-1 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 text-xs font-bold text-slate-600 transition-all cursor-pointer active:scale-[0.98]"
+                      className="flex items-center gap-1.5 justify-center py-2 px-1 border border-border rounded-xl bg-sidebar-accent hover:bg-sidebar-accent/80 text-xs font-bold text-sidebar-accent-foreground transition-all cursor-pointer active:scale-[0.98]"
                     >
-                      <Palette className="w-3.5 h-3.5 text-indigo-500" />
+                      <Palette className="w-3.5 h-3.5 text-orange-500" />
                       <span>{item.label}</span>
                     </button>
                   ))}
@@ -795,60 +813,65 @@ export default function PresentationView() {
 
               {/* Speaker Notes */}
               <div className="flex flex-col gap-2 flex-1 min-h-[140px]">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none">
                   Presenter Notes
                 </span>
                 <textarea
                   value={slideNotes[activeIndex] || ""}
                   onChange={(e) => updateSlideNote(activeIndex, e.target.value)}
                   placeholder="Write speaker notes here to guide your talk..."
-                  className="w-full border border-slate-200 rounded-xl p-3 text-xs text-slate-600 bg-white focus:ring-1.5 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none resize-none leading-relaxed flex-1 shadow-2xs"
+                  className="w-full border border-border rounded-xl p-3 text-xs text-sidebar-accent-foreground bg-sidebar-accent focus:ring-1.5 focus:ring-orange-500/20 focus:border-orange-500 outline-none resize-none leading-relaxed flex-1 shadow-2xs"
                 />
               </div>
 
             </div>
           )}
         </div>
+      </SidebarContent>
 
-        {/* Small stats helper inside sidebar footer */}
-        <div className="p-3 border-t border-slate-200 bg-slate-50 flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+      <SidebarFooter>
+        <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase tracking-wide group-data-[collapsible=icon]:hidden">
           <div className="flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+            <Sparkles className="w-3.5 h-3.5 text-orange-500" />
             <span>SlideOS Design</span>
           </div>
           <span>v2.1</span>
         </div>
-      </aside>
+      </SidebarFooter>
+    </Sidebar>
 
+    <div className="flex flex-1 flex-col h-screen overflow-hidden relative">
       {/* 2. MAIN CANVAS VIEWPORT */}
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
         
         {/* Floating Context Toolbar */}
         <div className="w-full max-w-5xl mx-auto px-6 pt-4 relative z-10">
-          <div className="bg-white/80 backdrop-blur-md border border-slate-200/90 rounded-2xl p-2.5 flex items-center justify-between shadow-[0_20px_48px_-10px_rgba(15,23,42,0.08),0_4px_16px_rgba(15,23,42,0.02)]">
+          <div className="bg-card/80 backdrop-blur-md border border-border/90 rounded-2xl p-2.5 flex items-center justify-between shadow-[0_20px_48px_-10px_rgba(15,23,42,0.08),0_4px_16px_rgba(15,23,42,0.02)]">
             
+            <SidebarTrigger className="mr-1" />
+
             {/* Left Toolbar Side: Selected Element controls */}
             <div className="flex items-center gap-3">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider bg-slate-100/80 px-2.5 py-1 rounded-lg">
+              <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider bg-muted/80 px-2.5 py-1 rounded-lg">
                 Slide {activeIndex + 1}/{slides.length}
               </span>
 
               {selectedElement?.type === "text" && (
-                <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
-                  <span className="text-xs font-semibold text-slate-500">Font size:</span>
+                <div className="flex items-center gap-2 border-l border-border pl-3">
+                  <span className="text-xs font-semibold text-muted-foreground">Font size:</span>
                   <input
                     type="number"
                     min={10}
                     max={96}
                     value={selectedElement.fontSize || 16}
                     onChange={(e) => updateSelectedTextSize(e.target.value)}
-                    className="w-16 border border-slate-200/80 rounded-lg px-2 py-1 text-xs font-mono text-center outline-none focus:ring-1.5 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    className="w-16 border border-border/80 rounded-lg px-2 py-1 text-xs font-mono text-center outline-none focus:ring-1.5 focus:ring-orange-500/20 focus:border-orange-500"
                   />
                 </div>
               )}
 
               {selectedElement?.type === "image" && (
-                <div className="flex items-center border-l border-slate-200 pl-3">
+                <div className="flex items-center border-l border-border pl-3">
                   <button
                     onClick={removeSelectedImage}
                     className="flex items-center gap-1.5 bg-red-50 hover:bg-red-100/70 border border-red-200/40 text-red-600 text-xs font-bold py-1.5 px-3 rounded-xl transition-all cursor-pointer active:scale-95"
@@ -864,24 +887,24 @@ export default function PresentationView() {
             <div className="flex items-center gap-2">
               <button
                 onClick={exportPPT}
-                className="flex items-center gap-1.5 bg-white border border-slate-200/95 text-slate-700 hover:bg-slate-50 transition-all font-bold px-3 py-1.5 rounded-xl text-xs cursor-pointer active:scale-95 shadow-2xs"
+                className="flex items-center gap-1.5 bg-card border border-border/95 text-foreground/80 hover:bg-muted transition-all font-bold px-3 py-1.5 rounded-xl text-xs cursor-pointer active:scale-95 shadow-2xs"
               >
-                <Download className="w-4 h-4 text-slate-500" />
+                <Download className="w-4 h-4 text-muted-foreground" />
                 <span>Export PPTX</span>
               </button>
 
               <button
                 onClick={handleSavePresentation}
                 disabled={!presentationId || isSaving}
-                className="flex items-center gap-1.5 bg-white border border-slate-200/95 text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition-all font-bold px-3 py-1.5 rounded-xl text-xs cursor-pointer active:scale-95 shadow-2xs"
+                className="flex items-center gap-1.5 bg-card border border-border/95 text-foreground/80 hover:bg-muted disabled:opacity-50 transition-all font-bold px-3 py-1.5 rounded-xl text-xs cursor-pointer active:scale-95 shadow-2xs"
               >
-                <Save className="w-4 h-4 text-slate-500" />
+                <Save className="w-4 h-4 text-muted-foreground" />
                 <span>Save</span>
               </button>
 
               <button
                 onClick={startFullscreenPresent}
-                className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm font-semibold px-4 py-1.5 rounded-xl text-xs cursor-pointer active:scale-95 transition-all border-t border-white/35 border-x border-white/15 border-b-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_4px_12px_rgba(99,102,241,0.25)]"
+                className="flex items-center gap-1.5 bg-orange-600 hover:bg-orange-700 text-white shadow-sm font-semibold px-4 py-1.5 rounded-xl text-xs cursor-pointer active:scale-95 transition-all border-t border-white/35 border-x border-white/15 border-b-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_4px_12px_rgba(249,115,22,0.25)]"
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
                 <span>Present</span>
@@ -895,7 +918,7 @@ export default function PresentationView() {
           onClick={() => setSelectedId(null)}
           className="flex-1 flex justify-center items-center overflow-auto relative p-8 select-none cursor-default"
           style={{
-            backgroundColor: "#e2e8f0",
+            backgroundColor: "var(--muted)",
             backgroundImage: `
               radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 70%),
               linear-gradient(rgba(148, 163, 184, 0.06) 1px, transparent 1px),
@@ -912,14 +935,14 @@ export default function PresentationView() {
               background: getBackgroundStyle(),
               position: "relative",
             }}
-            className="rounded-2xl shadow-[0_24px_70px_rgba(15,23,42,0.08)] border border-slate-200/50 overflow-hidden shrink-0 select-none"
+            className="rounded-2xl shadow-[0_24px_70px_rgba(15,23,42,0.08)] border border-border/50 overflow-hidden shrink-0 select-none"
           >
             {/* Microsoft Fluent Theme Accents */}
             {themeIdState === "fluent" && (
               <>
-                <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-gradient-to-br from-cyan-400/20 to-blue-600/20 blur-2xl pointer-events-none z-0" />
-                <div className="absolute -bottom-36 -left-36 w-96 h-96 rounded-full bg-gradient-to-tr from-purple-500/10 to-indigo-500/10 blur-2xl pointer-events-none z-0" />
-                <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 to-cyan-400 pointer-events-none z-0" />
+                <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-gradient-to-br from-cyan-400/20 to-orange-600/20 blur-2xl pointer-events-none z-0" />
+                <div className="absolute -bottom-36 -left-36 w-96 h-96 rounded-full bg-gradient-to-tr from-purple-500/10 to-orange-500/10 blur-2xl pointer-events-none z-0" />
+                <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-orange-600 to-cyan-400 pointer-events-none z-0" />
               </>
             )}
 
@@ -981,11 +1004,11 @@ export default function PresentationView() {
                 {/* Figma-Style circular drag corner handles for selected items */}
                 {selectedId === el.id && (
                   <>
-                    <div className="absolute inset-0 border border-indigo-600/90 pointer-events-none rounded-sm" />
-                    <div className="absolute -top-1 -left-1 w-2.5 h-2.5 bg-white border-1.5 border-indigo-600 rounded-full z-10 pointer-events-none shadow-sm" />
-                    <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-white border-1.5 border-indigo-600 rounded-full z-10 pointer-events-none shadow-sm" />
-                    <div className="absolute -bottom-1 -left-1 w-2.5 h-2.5 bg-white border-1.5 border-indigo-600 rounded-full z-10 pointer-events-none shadow-sm" />
-                    <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-white border-1.5 border-indigo-600 rounded-full z-10 pointer-events-none shadow-sm" />
+                    <div className="absolute inset-0 border border-orange-600/90 pointer-events-none rounded-sm" />
+                    <div className="absolute -top-1 -left-1 w-2.5 h-2.5 bg-card border-1.5 border-orange-600 rounded-full z-10 pointer-events-none shadow-sm" />
+                    <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-card border-1.5 border-orange-600 rounded-full z-10 pointer-events-none shadow-sm" />
+                    <div className="absolute -bottom-1 -left-1 w-2.5 h-2.5 bg-card border-1.5 border-orange-600 rounded-full z-10 pointer-events-none shadow-sm" />
+                    <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-card border-1.5 border-orange-600 rounded-full z-10 pointer-events-none shadow-sm" />
                   </>
                 )}
               </Rnd>
@@ -1003,7 +1026,7 @@ export default function PresentationView() {
           {/* Top Stage bar */}
           <div className="px-6 py-3.5 flex items-center justify-between border-b border-white/5 select-none relative z-10 bg-zinc-950/80 backdrop-blur-md">
             <div className="text-xs font-bold text-zinc-400 uppercase tracking-widest font-sans flex items-center gap-1.5">
-              <span className="text-indigo-400 font-extrabold animate-pulse">●</span>
+              <span className="text-orange-400 font-extrabold animate-pulse">●</span>
               <span>Presenting: {presentationTitle || "Untitled deck"}</span>
             </div>
             
@@ -1031,7 +1054,7 @@ export default function PresentationView() {
             <button
               onClick={presentPrev}
               disabled={presentIndex === 0}
-              className={`z-10 flex items-center justify-center w-12 h-12 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-white shadow-xl active:scale-95 transition-all ${
+              className={`z-10 flex items-center justify-center w-12 h-12 rounded-full border border-white/10 bg-card/5 hover:bg-card/10 text-white shadow-xl active:scale-95 transition-all ${
                 presentIndex === 0 ? "cursor-not-allowed opacity-15" : "cursor-pointer opacity-80 hover:opacity-100"
               }`}
             >
@@ -1053,9 +1076,9 @@ export default function PresentationView() {
               {/* Microsoft Fluent Theme Accents */}
               {themeIdState === "fluent" && (
                 <>
-                  <div className="absolute -top-24 -right-24 w-[35%] aspect-square rounded-full bg-gradient-to-br from-cyan-400/20 to-blue-600/20 blur-3xl pointer-events-none z-0" />
-                  <div className="absolute -bottom-36 -left-36 w-[40%] aspect-square rounded-full bg-gradient-to-tr from-purple-500/10 to-indigo-500/10 blur-3xl pointer-events-none z-0" />
-                  <div className="absolute top-0 left-0 right-0 h-[1.5%] bg-gradient-to-r from-blue-600 to-cyan-400 pointer-events-none z-0" />
+                  <div className="absolute -top-24 -right-24 w-[35%] aspect-square rounded-full bg-gradient-to-br from-cyan-400/20 to-orange-600/20 blur-3xl pointer-events-none z-0" />
+                  <div className="absolute -bottom-36 -left-36 w-[40%] aspect-square rounded-full bg-gradient-to-tr from-purple-500/10 to-orange-500/10 blur-3xl pointer-events-none z-0" />
+                  <div className="absolute top-0 left-0 right-0 h-[1.5%] bg-gradient-to-r from-orange-600 to-cyan-400 pointer-events-none z-0" />
                 </>
               )}
 
@@ -1104,7 +1127,7 @@ export default function PresentationView() {
             <button
               onClick={presentNext}
               disabled={presentIndex === slides.length - 1}
-              className={`z-10 flex items-center justify-center w-12 h-12 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-white shadow-xl active:scale-95 transition-all ${
+              className={`z-10 flex items-center justify-center w-12 h-12 rounded-full border border-white/10 bg-card/5 hover:bg-card/10 text-white shadow-xl active:scale-95 transition-all ${
                 presentIndex === slides.length - 1 ? "cursor-not-allowed opacity-15" : "cursor-pointer opacity-80 hover:opacity-100"
               }`}
             >
@@ -1140,6 +1163,7 @@ export default function PresentationView() {
         </div>
       )}
     </div>
+    </SidebarProvider>
   );
 }
 

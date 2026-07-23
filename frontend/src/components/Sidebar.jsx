@@ -167,10 +167,10 @@ export function Sidebar({ onLogout }) {
         >
           {/* Custom Circle/Pill logo */}
           <div className="flex items-center gap-1.5">
-            <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center shadow-xs">
+            <div className="w-5 h-5 rounded-full bg-orange-600 flex items-center justify-center shadow-xs">
               <div className="w-2.5 h-2.5 rounded-full bg-white" />
             </div>
-            <div className="w-8 h-4 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 opacity-90 shadow-xs" />
+            <div className="w-8 h-4 rounded-full bg-gradient-to-r from-orange-500 to-cyan-400 opacity-90 shadow-xs" />
           </div>
           <span className="font-semibold text-lg text-slate-800 tracking-tight font-sans">
             SlideOS
@@ -195,7 +195,7 @@ export function Sidebar({ onLogout }) {
             placeholder="Search decks..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white border border-slate-200 focus:bg-white text-slate-800 placeholder-slate-400 pl-9 pr-12 py-1.5 rounded-lg text-sm focus:ring-1.5 focus:ring-indigo-500/25 outline-none transition-all"
+            className="w-full bg-white border border-slate-200 focus:bg-white text-slate-800 placeholder-slate-400 pl-9 pr-12 py-1.5 rounded-lg text-sm focus:ring-1.5 focus:ring-orange-500/25 outline-none transition-all"
           />
           <div className="absolute right-3.5 top-1/2 -translate-y-1/2 bg-slate-50 border border-slate-200/60 text-[10px] font-medium text-slate-400 px-1.5 py-0.5 rounded uppercase pointer-events-none font-mono">
             Ctrl K
@@ -208,11 +208,11 @@ export function Sidebar({ onLogout }) {
             onClick={() => navigate('/')}
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-all text-left cursor-pointer ${
               location.pathname === '/' 
-                ? 'bg-blue-50/70 text-blue-600 shadow-2xs border border-blue-100/50' 
+                ? 'bg-orange-50/70 text-orange-600 shadow-2xs border border-orange-100/50' 
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
-            <Home className={`w-4 h-4 ${location.pathname === '/' ? 'text-blue-500' : 'text-slate-400'}`} />
+            <Home className={`w-4 h-4 ${location.pathname === '/' ? 'text-orange-500' : 'text-slate-400'}`} />
             <span>Home</span>
           </button>
 
@@ -220,11 +220,11 @@ export function Sidebar({ onLogout }) {
             onClick={() => navigate('/my-presentations')}
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-all text-left cursor-pointer ${
               location.pathname === '/my-presentations' 
-                ? 'bg-blue-50/70 text-blue-600 shadow-2xs border border-blue-100/50' 
+                ? 'bg-orange-50/70 text-orange-600 shadow-2xs border border-orange-100/50' 
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
-            <Library className={`w-4 h-4 ${location.pathname === '/my-presentations' ? 'text-blue-500' : 'text-slate-400'}`} />
+            <Library className={`w-4 h-4 ${location.pathname === '/my-presentations' ? 'text-orange-500' : 'text-slate-400'}`} />
             <span>Library</span>
           </button>
 
@@ -310,7 +310,7 @@ export function Sidebar({ onLogout }) {
         >
           <div className="flex items-center gap-2.5 overflow-hidden">
             {/* User Initials Circle */}
-            <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+            <div className="w-8 h-8 rounded-lg bg-orange-50 border border-orange-100 text-orange-700 flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
               {getUserInitials()}
             </div>
             

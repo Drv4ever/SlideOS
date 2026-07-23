@@ -35,7 +35,8 @@ function getStoredToken() {
   }
 }
 
-import { Sidebar } from './components/Sidebar.jsx';
+import { SidebarProvider, SidebarTrigger } from './components/ui/sidebar.jsx';
+import { AppSidebar } from './components/AppSidebar.jsx';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(
@@ -47,7 +48,7 @@ export default function App() {
 
   const [presentationTheme, setPresentationTheme] = useState({
     name: 'Dalibio',
-    fonts: {
+    fontFamily: {
       heading: 'Poppins',
       body: 'Source Sans Pro'
     }
@@ -112,10 +113,9 @@ export default function App() {
     return (
       <ThemeProvider>
         <div 
-          className="min-h-screen transition-all duration-500"
+          className="min-h-screen transition-all duration-500 bg-background"
           style={{
-            backgroundColor: '#09090b', // Keep presentation view dark/cinematic
-            fontFamily: `${presentationTheme.fonts.body}, sans-serif`,
+          fontFamily: `${presentationTheme.fontFamily?.body || 'Inter'}, sans-serif`,
           }}
         >
           {mainContent}
@@ -127,20 +127,23 @@ export default function App() {
   return (
     <ThemeProvider>
       <div 
-        className="min-h-screen transition-all duration-500 flex font-sans"
+        className="min-h-screen transition-all duration-500 flex font-sans bg-background text-foreground"
         style={{
-          backgroundColor: '#f8fafc', // Sleek light background
-          fontFamily: `${presentationTheme.fonts.body}, sans-serif`,
-          color: '#0f172a',
+          fontFamily: `${presentationTheme.fontFamily?.body || 'Inter'}, sans-serif`,
         }}
       >
         {isAuthenticated ? (
-          <div className="flex w-full h-screen overflow-hidden bg-slate-100/70 p-4 gap-4">
-            <Sidebar onLogout={handleLogout} />
-            <main className="flex-1 overflow-y-auto bg-white rounded-2xl border border-slate-200 shadow-md p-6 md:p-8">
-              {mainContent}
-            </main>
-          </div>
+          <SidebarProvider>
+            <AppSidebar onLogout={handleLogout} />
+            <div className="flex flex-1 flex-col min-h-svh p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <SidebarTrigger />
+              </div>
+              <main className="flex-1 overflow-y-auto bg-card rounded-2xl border border-border shadow-md p-6 md:p-8">
+                {mainContent}
+              </main>
+            </div>
+          </SidebarProvider>
         ) : (
           <div className="flex-1 min-h-screen overflow-y-auto">
             <main>

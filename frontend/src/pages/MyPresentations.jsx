@@ -9,41 +9,47 @@ import {
 } from "../services/presentationService";
 
 const themePalette = {
+  fluent: {
+    primary: '#0078d4',
+    accent: '#ffb900',
+    background: '#ffffff',
+    text: '#201f1e',
+  },
   dalibio: {
-    primary: "#6366f1",
-    secondary: "#818cf8",
-    background: "#f0f4ff",
-    text: "#1e1b4b",
+    primary: '#c2410c',
+    accent: '#22d3ee',
+    background: '#ffffff',
+    text: '#1e1b4b',
   },
   noir: {
-    primary: "#18181b",
-    secondary: "#3f3f46",
-    background: "#f5f5f5",
-    text: "#09090b",
+    primary: '#18181b',
+    accent: '#facc15',
+    background: '#ffffff',
+    text: '#09090b',
   },
-  cornflower: {
-    primary: "#6366f1",
-    secondary: "#a5b4fc",
-    background: "#eef2ff",
-    text: "#312e81",
+  terra: {
+    primary: '#b45309',
+    accent: '#0d9488',
+    background: '#fffbf5',
+    text: '#451a03',
   },
   indigo: {
-    primary: "#4f46e5",
-    secondary: "#6366f1",
-    background: "#e0e7ff",
-    text: "#3730a3",
+    primary: '#ea580c',
+    accent: '#f43f5e',
+    background: '#ffffff',
+    text: '#7c2d12',
   },
   orbit: {
-    primary: "#8b5cf6",
-    secondary: "#a78bfa",
-    background: "#faf5ff",
-    text: "#581c87",
+    primary: '#7c3aed',
+    accent: '#34d399',
+    background: '#ffffff',
+    text: '#2e1065',
   },
-  cosmos: {
-    primary: "#ec4899",
-    secondary: "#f472b6",
-    background: "#fdf4ff",
-    text: "#831843",
+  midnight: {
+    primary: '#f8fafc',
+    accent: '#22d3ee',
+    background: '#0f172a',
+    text: '#e2e8f0',
   },
 };
 
@@ -141,7 +147,7 @@ export default function MyPresentations() {
             <div
               className="h-28 px-5 py-4"
               style={{
-                background: `linear-gradient(135deg, ${palette.primary}, ${palette.secondary})`,
+                background: `linear-gradient(135deg, ${palette.primary}, ${palette.accent})`,
                 color: "#fff",
               }}
             >
@@ -162,11 +168,11 @@ export default function MyPresentations() {
             </p>
 
             <div className="mt-4 flex gap-3">
-              <Button onClick={() => openPresentation(item._id)}>
+              <Button variant="destructive" onClick={() => openPresentation(item._id)}>
                 Open
               </Button>
               <Button
-                variant="outline"
+                variant="destructive"
                 onClick={() => handleDeletePresentation(item._id, item.title)}
               >
                 Delete

@@ -21,7 +21,7 @@ export function Header({ themeColors, isAuthenticated, onLogout }) {
               type="button"
               className="text-xl font-semibold bg-gradient-to-r bg-clip-text text-transparent transition-all duration-500 cursor-pointer"
               style={{
-                backgroundImage: `linear-gradient(to right, ${themeColors?.primary}, ${themeColors?.secondary})`,
+                backgroundImage: `linear-gradient(to right, ${themeColors?.primary}, ${themeColors?.accent})`,
               }}
             >
               SlideOS
@@ -41,7 +41,7 @@ export function Header({ themeColors, isAuthenticated, onLogout }) {
           <div className="flex items-center gap-2">
             {isAuthenticated && (
               <Button
-                variant="outline"
+                variant="destructive"
                 size="sm"
                 onClick={onLogout}
               >
