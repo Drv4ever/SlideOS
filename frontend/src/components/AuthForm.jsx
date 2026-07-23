@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
+import { GoogleLogin } from "@react-oauth/google";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
@@ -18,6 +19,12 @@ export function AuthForm({ onAuthSuccess, theme, isModal = false }) {
     secondary: "#50e4ff",
     background: "#f8fafc",
     text: "#0f172a",
+  };
+
+  const handleAuthSuccess = (data) => {
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
+    onAuthSuccess(data.user);
   };
 
   const submit = async (e) => {
@@ -40,11 +47,31 @@ export function AuthForm({ onAuthSuccess, theme, isModal = false }) {
         throw new Error(data?.message || "Authentication failed");
       }
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      onAuthSuccess(data.user);
+      handleAuthSuccess(data);
     } catch (error) {
       alert(error.message || "Authentication failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogle = async (credentialResponse) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential: credentialResponse.credential }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.message || "Google sign-in failed");
+      }
+
+      handleAuthSuccess(data);
+    } catch (error) {
+      alert(error.message || "Google sign-in failed");
     } finally {
       setLoading(false);
     }
@@ -155,6 +182,24 @@ export function AuthForm({ onAuthSuccess, theme, isModal = false }) {
             )}
           </Button>
         </form>
+
+        {/* Divider */}
+        <div className="flex items-center gap-3 my-5">
+          <div className="h-px flex-1 bg-slate-200" />
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">or</span>
+          <div className="h-px flex-1 bg-slate-200" />
+        </div>
+
+        {/* Continue with Google */}
+        <div className="flex justify-center">
+          <GoogleLogin
+            onSuccess={handleGoogle}
+            onError={() => alert("Google sign-in failed")}
+            text={mode === "login" ? "signin_with" : "signup_with"}
+            shape="pill"
+            width="320"
+          />
+        </div>
       </div>
     </div>
   );

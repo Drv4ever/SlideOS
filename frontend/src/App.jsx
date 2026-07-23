@@ -143,17 +143,9 @@ export default function App() {
           </div>
         ) : (
           <div className="flex-1 min-h-screen overflow-y-auto">
-            {!isPresentationRoute && (
-              <Header
-                themeColors={presentationTheme.colors}
-                isAuthenticated={isAuthenticated}
-                onLogout={handleLogout}
-              />
-            )}
-            <main className="py-6">
+            <main>
               {mainContent}
             </main>
-            {!isPresentationRoute && <Footer themeColors={presentationTheme.colors} />}
           </div>
         )}
       </div>

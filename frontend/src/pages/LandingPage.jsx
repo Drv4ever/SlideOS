@@ -74,7 +74,8 @@ export default function LandingPage({ onAuthSuccess, theme }) {
       <div className="absolute bottom-12 right-1/4 w-[500px] h-[500px] bg-indigo-50/60 rounded-full blur-3xl pointer-events-none -z-10" />
 
       {/* 1. Header Navigation Bar */}
-      <header className="w-full max-w-6xl mx-auto px-6 py-5 flex items-center justify-between relative z-10">
+      <header className="sticky top-0 z-50 w-full bg-slate-50/90 backdrop-blur-sm border-b border-slate-200/60">
+      <div className="w-full max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center shadow-sm">
             <div className="w-3 h-3 rounded-full bg-white" />
@@ -105,10 +106,11 @@ export default function LandingPage({ onAuthSuccess, theme }) {
             Get Started
           </button>
         </div>
+      </div>
       </header>
 
       {/* 2. Hero Section */}
-      <main className="flex-1 w-full max-w-6xl mx-auto px-6 py-12 md:py-20 flex flex-col lg:flex-row items-center gap-16 relative z-10 justify-center">
+      <main className="flex-1 w-full max-w-6xl mx-auto px-6 pb-12 md:pb-20 pt-8 flex flex-col lg:flex-row items-center gap-16 relative z-10 justify-center">
         
         {/* Left Side Hero Copy */}
         <div className="flex-1 flex flex-col text-left gap-6 lg:max-w-xl">
@@ -185,7 +187,7 @@ export default function LandingPage({ onAuthSuccess, theme }) {
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 to-cyan-400 pointer-events-none z-0" />
               </>
             )}
-            
+
             {mockSlides[activeMockIndex].accent === "stripe" && (
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 to-cyan-400 pointer-events-none z-0" />
             )}
@@ -219,7 +221,7 @@ export default function LandingPage({ onAuthSuccess, theme }) {
             {/* Slide footer preview */}
             <div className="flex items-center justify-between pt-3 border-t border-slate-100/50 relative z-10">
               <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">SlideOS Core Visuals</span>
-              
+
               {/* Play demo badge */}
               <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100 text-[8px] font-bold text-slate-500 uppercase">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
