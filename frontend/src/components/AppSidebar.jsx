@@ -154,9 +154,10 @@ export function AppSidebar({ onLogout }) {
       <SidebarContent>
         {/* Logo + New Presentation (visible when expanded) */}
         <div className="flex flex-col gap-2 p-3 pb-0 group-data-[collapsible=icon]:hidden">
-          <div
+          <button
             onClick={() => navigate('/')}
-            className="flex items-center gap-2.5 cursor-pointer py-1.5"
+            className="flex items-center gap-2.5 cursor-pointer py-1.5 bg-transparent border-0 text-left w-full focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:rounded-lg"
+            type="button"
           >
             <div className="flex items-center gap-1.5">
               <div className="w-5 h-5 rounded-full bg-orange-600 flex items-center justify-center shadow-xs shrink-0">
@@ -167,26 +168,28 @@ export function AppSidebar({ onLogout }) {
             <span className="font-semibold text-lg text-sidebar-foreground tracking-tight">
               SlideOS
             </span>
-          </div>
+          </button>
           <Button
             onClick={handleNewPresentation}
             variant="destructive"
             size="sm"
             className="w-full gap-2"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4" data-icon="inline-start" />
             <span>New Presentation</span>
           </Button>
         </div>
 
         {/* Logo only for collapsed state */}
         <div className="hidden group-data-[collapsible=icon]:flex justify-center py-3">
-          <div
+          <button
             onClick={() => navigate('/')}
-            className="w-6 h-6 rounded-full bg-orange-600 flex items-center justify-center shadow-xs cursor-pointer"
+            className="w-6 h-6 rounded-full bg-orange-600 flex items-center justify-center shadow-xs cursor-pointer bg-transparent border-0 focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+            type="button"
+            aria-label="Home"
           >
             <div className="w-3 h-3 rounded-full bg-white" />
-          </div>
+          </button>
         </div>
 
         {/* Search */}

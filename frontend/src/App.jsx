@@ -1,9 +1,9 @@
-import { ThemeProvider } from './providers/ThemeProvider.jsx';
 import { Header } from './components/Header.jsx';
 import { PresentationGenerator } from './components/PresentationGenerator.jsx';
 import { Footer } from './components/Footer.jsx';
 import { useState } from 'react';
 import { Routes, Route, useLocation } from "react-router-dom";
+import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import PresentationPreview from './pages/PresentationPreview.jsx';
 import PresentationView from './pages/PresentationView.jsx';
 import { AuthForm } from './components/AuthForm.jsx';
@@ -109,10 +109,10 @@ export default function App() {
   );
 
   // Presentation route is fullscreen
-  if (isPresentationRoute) {
+if (isPresentationRoute) {
     return (
-      <ThemeProvider>
-        <div 
+<ErrorBoundary>
+      <div
           className="min-h-screen transition-all duration-500 bg-background"
           style={{
           fontFamily: `${presentationTheme.fontFamily?.body || 'Inter'}, sans-serif`,
@@ -120,12 +120,12 @@ export default function App() {
         >
           {mainContent}
         </div>
-      </ThemeProvider>
+      </ErrorBoundary>
     );
   }
 
   return (
-    <ThemeProvider>
+    <ErrorBoundary>
       <div 
         className="min-h-screen transition-all duration-500 flex font-sans bg-background text-foreground"
         style={{
@@ -150,8 +150,8 @@ export default function App() {
               {mainContent}
             </main>
           </div>
-        )}
+)}
       </div>
-    </ThemeProvider>
+    </ErrorBoundary>
   );
 }

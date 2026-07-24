@@ -243,7 +243,8 @@ export function PresentationGenerator({ onThemeChange }) {
               }
             }}
             placeholder={`Message SlideOS... (Style: ${currentTheme?.name})`}
-            className="w-full bg-transparent border-0 text-foreground placeholder-muted-foreground px-2 py-1.5 outline-none resize-none text-base leading-relaxed"
+            aria-label="Presentation topic or outline"
+            className="w-full bg-transparent border-0 text-foreground placeholder-muted-foreground px-2 py-1.5 resize-none text-base leading-relaxed focus-visible:ring-2 focus-visible:ring-orange-500/40 focus-visible:rounded-lg"
           />
 
             <div className="flex items-center justify-between border-t border-border pt-2.5 px-1.5">
@@ -370,7 +371,11 @@ export function PresentationGenerator({ onThemeChange }) {
                           damping: 22 
                         }}
                         onClick={() => isTop ? cycleThemeStack(1) : handleThemeChange(theme.id)}
-                        className={`absolute w-full max-w-sm bg-sidebar-accent rounded-2xl border border-border p-5 shadow-lg select-none cursor-pointer hover:border-foreground/30 hover:shadow-xl transition-colors duration-350 ${
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (isTop) cycleThemeStack(1); else handleThemeChange(theme.id); } }}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Select ${theme.name} theme`}
+                        className={`absolute w-full max-w-sm bg-sidebar-accent rounded-2xl border border-border p-5 shadow-lg select-none cursor-pointer hover:border-foreground/30 hover:shadow-xl transition-colors duration-350 focus-visible:ring-2 focus-visible:ring-orange-500/40 ${
                           selectedTheme === theme.id ? 'border-foreground ring-2 ring-foreground/10' : 'border-border/80'
                         }`}
                       >
@@ -415,6 +420,7 @@ export function PresentationGenerator({ onThemeChange }) {
                   <div className="absolute -left-12 top-1/2 -translate-y-1/2 flex items-center justify-center">
                     <button 
                       onClick={() => cycleThemeStack(-1)}
+                      aria-label="Previous theme"
                       className="w-10 h-10 rounded-full border border-border bg-sidebar-accent hover:bg-sidebar-accent/80 flex items-center justify-center shadow-md text-muted-foreground active:scale-95 transition-all cursor-pointer"
                     >
                       <ChevronLeft className="w-5 h-5" />
@@ -423,6 +429,7 @@ export function PresentationGenerator({ onThemeChange }) {
                   <div className="absolute -right-12 top-1/2 -translate-y-1/2 flex items-center justify-center">
                     <button 
                       onClick={() => cycleThemeStack(1)}
+                      aria-label="Next theme"
                       className="w-10 h-10 rounded-full border border-border bg-sidebar-accent hover:bg-sidebar-accent/80 flex items-center justify-center shadow-md text-muted-foreground active:scale-95 transition-all cursor-pointer"
                     >
                       <ChevronRight className="w-5 h-5" />
@@ -436,6 +443,10 @@ export function PresentationGenerator({ onThemeChange }) {
                     <div
                       key={theme.id}
                       onClick={() => handleThemeChange(theme.id)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleThemeChange(theme.id); } }}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Select ${theme.name} theme`}
                       className={`bg-sidebar-accent border rounded-2xl p-4 text-left cursor-pointer hover:border-foreground/30 hover:shadow-md transition-all flex flex-col gap-3 relative ${
                         selectedTheme === theme.id ? 'border-foreground ring-2 ring-foreground/10' : 'border-border/80'
                       }`}
@@ -514,8 +525,9 @@ export function PresentationGenerator({ onThemeChange }) {
 
                 {/* 3. Tone Dropdown */}
                 <div className="flex flex-col gap-2">
-                  <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Tone of writing</Label>
+                  <Label htmlFor="tone-select" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Tone of writing</Label>
                   <select 
+                    id="tone-select"
                     value={tone} 
                     onChange={(e) => setTone(e.target.value)}
                     className="w-full bg-sidebar-accent border border-border/80 rounded-xl px-3 py-2.5 text-sm text-foreground focus:ring-1.5 focus:ring-orange-500/25 focus:border-orange-500 outline-none transition-all cursor-pointer"
@@ -529,8 +541,9 @@ export function PresentationGenerator({ onThemeChange }) {
 
                 {/* 4. Scenario Dropdown */}
                 <div className="flex flex-col gap-2">
-                  <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Scenario</Label>
+                  <Label htmlFor="scenario-select" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Scenario</Label>
                   <select 
+                    id="scenario-select"
                     value={scenario} 
                     onChange={(e) => setScenario(e.target.value)}
                     className="w-full bg-sidebar-accent border border-border/80 rounded-xl px-3 py-2.5 text-sm text-foreground focus:ring-1.5 focus:ring-orange-500/25 focus:border-orange-500 outline-none transition-all cursor-pointer"

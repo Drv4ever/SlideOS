@@ -125,8 +125,9 @@ export function AuthForm({ onAuthSuccess, theme, isModal = false }) {
         <form className="space-y-4 text-left" onSubmit={submit}>
           {mode === "register" && (
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Name</Label>
+              <Label htmlFor="auth-name" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Name</Label>
               <Input
+                id="auth-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -137,25 +138,29 @@ export function AuthForm({ onAuthSuccess, theme, isModal = false }) {
           )}
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Email Address</Label>
+            <Label htmlFor="auth-email" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Email Address</Label>
             <Input
+              id="auth-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="email"
               placeholder="you@example.com"
               className="h-10 rounded-xl border-slate-200 bg-slate-50 text-sm font-medium focus:ring-2 focus:ring-orange-500/25"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Password</Label>
+            <Label htmlFor="auth-password" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Password</Label>
             <Input
+              id="auth-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={8}
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
               placeholder="••••••••"
               className="h-10 rounded-xl border-slate-200 bg-slate-50 text-sm font-medium focus:ring-2 focus:ring-orange-500/25"
             />

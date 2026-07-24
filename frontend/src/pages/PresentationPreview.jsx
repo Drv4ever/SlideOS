@@ -181,6 +181,7 @@ export default function PresentationPreview() {
               onChange={(e) => setTitle(e.target.value)}
               className="text-lg font-bold text-foreground bg-transparent border-b border-transparent focus:border-orange-500/80 outline-none pb-0.5 truncate max-w-md"
               placeholder="Presentation Title"
+              aria-label="Presentation title"
               title="Click to rename"
             />
             <span className="text-[10px] text-orange-600 font-bold tracking-wider uppercase mt-0.5 leading-none">
@@ -219,7 +220,7 @@ export default function PresentationPreview() {
             })}
             className="flex items-center gap-1.5 cursor-pointer h-9 px-4 rounded-lg text-sm mr-4"
           >
-            <Play className="w-4 h-4" />
+            <Play className="w-4 h-4" data-icon="inline-start" />
             <span>Present</span>
           </Button>
         </div>
@@ -255,6 +256,7 @@ export default function PresentationPreview() {
                     onChange={(e) => updateHeading(slideIndex, e.target.value)}
                     className="w-full text-base font-bold text-foreground bg-transparent outline-none border-b border-transparent focus:border-orange-500/50 pb-0.5"
                     placeholder="Enter slide heading"
+                    aria-label={`Slide ${slideIndex + 1} heading`}
                   />
                 </div>
 
@@ -275,6 +277,7 @@ export default function PresentationPreview() {
                           onChange={(e) => updateBullet(slideIndex, bulletIndex, e.target.value)}
                           className="flex-1 text-sm text-muted-foreground bg-transparent outline-none border-b border-transparent focus:border-orange-500/40 pb-0.5 font-sans"
                           placeholder="Bullet point item"
+                          aria-label={`Slide ${slideIndex + 1} bullet ${bulletIndex + 1}`}
                         />
 
                         {/* Hover close icon */}

@@ -18,6 +18,7 @@ export default function LandingPage({ onAuthSuccess, theme }) {
   const [promptText, setPromptText] = useState('');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authTab, setAuthTab] = useState('login'); // 'login' or 'register'
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Mock Slide Slide Show State
   const [activeMockIndex, setActiveMockIndex] = useState(0);
@@ -52,6 +53,8 @@ export default function LandingPage({ onAuthSuccess, theme }) {
 
   const handleStartGenerate = (e) => {
     e.preventDefault();
+    if (!promptText.trim()) return;
+    setIsSubmitting(true);
     setShowAuthModal(true);
   };
 
@@ -146,14 +149,24 @@ export default function LandingPage({ onAuthSuccess, theme }) {
               value={promptText}
               onChange={(e) => setPromptText(e.target.value)}
               placeholder="e.g. History of Space Exploration..."
+              aria-label="Presentation topic"
+              required
+              minLength={2}
               className="flex-1 bg-transparent border-0 px-3 text-slate-100 placeholder-slate-500 outline-none text-sm font-medium"
             />
             <button
               type="submit"
-              className="bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs py-2.5 px-5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-sm border-t border-white/20 border-x border-white/10 active:scale-95"
+              disabled={!promptText.trim() || isSubmitting}
+              className="bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs py-2.5 px-5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-sm border-t border-white/20 border-x border-white/10 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span>Generate Deck</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              {isSubmitting ? (
+                <span>Please wait...</span>
+              ) : (
+                <>
+                  <span>Generate Deck</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </>
+              )}
             </button>
           </form>
 
@@ -253,7 +266,7 @@ export default function LandingPage({ onAuthSuccess, theme }) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setShowAuthModal(false)}
+              onClick={() => { setShowAuthModal(false); setIsSubmitting(false); }}
               className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             />
 
@@ -267,7 +280,8 @@ export default function LandingPage({ onAuthSuccess, theme }) {
             >
               {/* Close Button */}
               <button 
-                onClick={() => setShowAuthModal(false)}
+                onClick={() => { setShowAuthModal(false); setIsSubmitting(false); }}
+                aria-label="Close authentication dialog"
                 className="absolute top-4 right-4 text-slate-500 hover:text-slate-100 transition-colors cursor-pointer bg-transparent border-0 outline-none"
               >
                 <X className="w-5 h-5" />

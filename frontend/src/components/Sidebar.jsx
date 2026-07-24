@@ -161,9 +161,10 @@ export function Sidebar({ onLogout }) {
     <aside className="w-60 h-full rounded-2xl border border-slate-200 bg-white flex flex-col justify-between p-4 select-none shrink-0 text-slate-600 shadow-md">
       <div className="flex flex-col gap-6 overflow-y-auto pr-1">
         {/* Brand Logo */}
-        <div 
+        <button
           onClick={() => navigate('/')}
-          className="flex items-center gap-2.5 px-2 cursor-pointer py-1.5"
+          className="flex items-center gap-2.5 px-2 cursor-pointer py-1.5 bg-transparent border-0 text-left w-full focus-visible:ring-2 focus-visible:ring-orange-500/40 focus-visible:rounded-lg"
+          type="button"
         >
           {/* Custom Circle/Pill logo */}
           <div className="flex items-center gap-1.5">
@@ -175,7 +176,7 @@ export function Sidebar({ onLogout }) {
           <span className="font-semibold text-lg text-slate-800 tracking-tight font-sans">
             SlideOS
           </span>
-        </div>
+        </button>
 
         {/* Action Button: New Deck */}
         <button
@@ -195,6 +196,7 @@ export function Sidebar({ onLogout }) {
             placeholder="Search decks..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            aria-label="Search presentations"
             className="w-full bg-white border border-slate-200 focus:bg-white text-slate-800 placeholder-slate-400 pl-9 pr-12 py-1.5 rounded-lg text-sm focus:ring-1.5 focus:ring-orange-500/25 outline-none transition-all"
           />
           <div className="absolute right-3.5 top-1/2 -translate-y-1/2 bg-slate-50 border border-slate-200/60 text-[10px] font-medium text-slate-400 px-1.5 py-0.5 rounded uppercase pointer-events-none font-mono">
@@ -304,9 +306,10 @@ export function Sidebar({ onLogout }) {
           </div>
         )}
 
-        <div 
+        <button
           onClick={() => setShowLogoutConfirm(!showLogoutConfirm)}
-          className="flex items-center justify-between bg-white border border-slate-200/70 p-2.5 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.02)] cursor-pointer hover:border-slate-350 hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)] active:scale-[0.98] transition-all"
+          className="flex items-center justify-between bg-white border border-slate-200/70 p-2.5 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.02)] cursor-pointer hover:border-slate-350 hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)] active:scale-[0.98] transition-all w-full text-left bg-transparent border-0 focus-visible:ring-2 focus-visible:ring-orange-500/40"
+          type="button"
         >
           <div className="flex items-center gap-2.5 overflow-hidden">
             {/* User Initials Circle */}
@@ -329,7 +332,7 @@ export function Sidebar({ onLogout }) {
           <div className="bg-amber-50 border border-amber-200/50 text-[10px] font-bold text-amber-700 px-2 py-0.5 rounded-md flex items-center justify-center shadow-xs">
             $5
           </div>
-        </div>
+        </button>
       </div>
     </aside>
   );
