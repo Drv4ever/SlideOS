@@ -59,7 +59,7 @@ export default function LandingPage({ onAuthSuccess, theme }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#1a1a1a] flex flex-col justify-between font-sans relative overflow-hidden select-none font-jakarta">
+    <div className="min-h-screen bg-background flex flex-col justify-between font-sans relative overflow-hidden select-none font-jakarta">
       
       {/* Dynamic Font Styling Imports */}
       <style>{`
@@ -77,7 +77,7 @@ export default function LandingPage({ onAuthSuccess, theme }) {
       <div className="absolute bottom-12 right-1/4 w-[500px] h-[500px] bg-orange-500/5 rounded-full blur-3xl pointer-events-none -z-10" />
 
       {/* 1. Header Navigation Bar */}
-      <header className="sticky top-0 z-50 w-full bg-[#1a1a1a]/90 backdrop-blur-sm border-b border-slate-800/60">
+      <header className="sticky top-0 z-50 w-full bg-background/90 backdrop-blur-sm border-b border-border">
       <div className="w-full max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-6 h-6 rounded-full bg-orange-600 flex items-center justify-center shadow-sm">
@@ -142,7 +142,7 @@ export default function LandingPage({ onAuthSuccess, theme }) {
           {/* Interactive Spotlight Prompt input */}
           <form 
             onSubmit={handleStartGenerate}
-            className="w-full bg-[#1a1a1a] border border-slate-700 rounded-2xl p-2 flex items-center shadow-[0_20px_48px_-12px_rgba(0,0,0,0.3),0_4px_16px_rgba(0,0,0,0.1)] focus-within:border-orange-500/80 focus-within:shadow-[0_20px_48px_-12px_rgba(234,88,12,0.3)] transition-all"
+            className="w-full bg-background border border-border rounded-2xl p-2 flex items-center shadow-[0_20px_48px_-12px_rgba(0,0,0,0.3),0_4px_16px_rgba(0,0,0,0.1)] focus-within:border-orange-500/80 focus-within:shadow-[0_20px_48px_-12px_rgba(234,88,12,0.3)] transition-all"
           >
             <input
               type="text"
@@ -190,7 +190,7 @@ export default function LandingPage({ onAuthSuccess, theme }) {
           <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-cyan-500/10 blur-3xl rounded-full scale-110 pointer-events-none" />
 
           {/* The visual deck screen */}
-          <div className="w-full max-w-md aspect-video bg-[#1a1a1a] rounded-2xl shadow-[0_32px_80px_rgba(0,0,0,0.35)] border border-slate-700/80 p-5 flex flex-col justify-between relative overflow-hidden group select-none">
+          <div className="w-full max-w-md aspect-video bg-card rounded-2xl shadow-[0_32px_80px_rgba(0,0,0,0.35)] border border-border p-5 flex flex-col justify-between relative overflow-hidden group select-none">
             
             {/* Interactive master slide design elements */}
             {mockSlides[activeMockIndex].accent === "fluent" && (
@@ -210,7 +210,7 @@ export default function LandingPage({ onAuthSuccess, theme }) {
             )}
 
             {/* Slide Header preview */}
-            <div className="flex items-center justify-between border-b border-slate-800/50 pb-3 relative z-10">
+            <div className="flex items-center justify-between border-b border-border/50 pb-3 relative z-10">
               <span className="text-[9px] font-extrabold text-orange-600 uppercase tracking-widest">
                 SLIDE {(activeMockIndex + 1).toString().padStart(2, '0')} OF 03
               </span>
@@ -232,11 +232,11 @@ export default function LandingPage({ onAuthSuccess, theme }) {
             </div>
 
             {/* Slide footer preview */}
-            <div className="flex items-center justify-between pt-3 border-t border-slate-800/50 relative z-10">
+            <div className="flex items-center justify-between pt-3 border-t border-border/50 relative z-10">
               <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider">SlideOS Core Visuals</span>
 
               {/* Play demo badge */}
-              <div className="flex items-center gap-1.5 bg-[#1a1a1a] px-2 py-1 rounded-lg border border-slate-700 text-[8px] font-bold text-slate-300 uppercase">
+              <div className="flex items-center gap-1.5 bg-muted px-2 py-1 rounded-lg border border-border text-[8px] font-bold text-foreground uppercase">
                 <span className="w-1.5 h-1.5 rounded-full bg-orange-600 animate-pulse" />
                 <span>Auto Play</span>
               </div>
@@ -246,7 +246,7 @@ export default function LandingPage({ onAuthSuccess, theme }) {
       </main>
 
       {/* 3. Footer branding details */}
-      <footer className="w-full py-6 border-t border-slate-800/60 bg-[#1a1a1a]/60 relative z-10">
+      <footer className="w-full py-6 border-t border-border bg-background/60 relative z-10">
         <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-semibold text-slate-500">
           <span>&copy; 2026 SlideOS Presentation builder. All rights reserved.</span>
           <div className="flex gap-4">
@@ -276,7 +276,7 @@ export default function LandingPage({ onAuthSuccess, theme }) {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
               transition={{ duration: 0.25 }}
-              className="relative w-full max-w-md bg-[#1a1a1a]/95 backdrop-blur-md rounded-2xl shadow-[0_30px_90px_rgba(0,0,0,0.4)] border border-slate-800 overflow-hidden flex flex-col p-6 text-center select-none"
+              className="relative w-full max-w-md bg-background/95 backdrop-blur-md rounded-2xl shadow-[0_30px_90px_rgba(0,0,0,0.4)] border border-border overflow-hidden flex flex-col p-6 text-center select-none"
             >
               {/* Close Button */}
               <button 
@@ -312,7 +312,7 @@ export default function LandingPage({ onAuthSuccess, theme }) {
               </div>
 
               {/* Footer Switch Tab link */}
-              <div className="mt-4 pt-3 border-t border-slate-800 text-xs font-semibold text-slate-400">
+              <div className="mt-4 pt-3 border-t border-border text-xs font-semibold text-foreground">
                 {authTab === 'login' ? (
                   <span>
                     New to SlideOS?{' '}
