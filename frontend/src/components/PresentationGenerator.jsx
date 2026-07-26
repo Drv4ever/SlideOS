@@ -230,7 +230,7 @@ export function PresentationGenerator({ onThemeChange }) {
 
       {/* 2. Spotlight Command Bar */}
       <div className="w-full flex flex-col gap-2 relative z-20">
-        <div className="w-full bg-sidebar-accent border border-border/90 rounded-2xl shadow-[0_25px_50px_-12px_rgba(15,23,42,0.12),0_4px_16px_rgba(15,23,42,0.03)] p-2.5 flex flex-col gap-2 focus-within:border-orange-500 focus-within:shadow-[0_25px_50px_-12px_rgba(234,88,12,0.14)] transition-all">
+        <div className="w-full bg-sidebar-accent border border-border/90 rounded-2xl shadow-[0_25px_50px_-12px_rgba(15,23,42,0.12),0_4px_16px_rgba(15,23,42,0.03)] p-2.5 flex flex-col gap-2 transition-all duration-150">
           <textarea
             ref={promptInputRef}
             rows={2}
@@ -244,7 +244,7 @@ export function PresentationGenerator({ onThemeChange }) {
             }}
             placeholder={`Message SlideOS... (Style: ${currentTheme?.name})`}
             aria-label="Presentation topic or outline"
-            className="w-full bg-transparent border-0 text-foreground placeholder-muted-foreground px-2 py-1.5 resize-none text-base leading-relaxed focus-visible:ring-2 focus-visible:ring-orange-500/40 focus-visible:rounded-lg"
+            className="w-full bg-transparent border-0 text-foreground placeholder-muted-foreground px-2 py-1.5 resize-none text-base leading-relaxed focus-visible:ring-0 focus-visible:rounded-lg outline-none"
           />
 
             <div className="flex items-center justify-between border-t border-border pt-2.5 px-1.5">
@@ -287,7 +287,7 @@ export function PresentationGenerator({ onThemeChange }) {
                 disabled={!prompt.trim() || isGenerating}
                 className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer active:scale-90 ${
                   prompt.trim() && !isGenerating
-                    ? 'bg-orange-600 text-white border-t border-white/35 border-x border-white/15 border-b-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_4px_12px_rgba(234,88,12,0.3)] hover:bg-orange-700'
+                    ? 'bg-orange-500 text-white border-t border-white/35 border-x border-white/15 border-b-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_4px_12px_rgba(234,88,12,0.3)] hover:bg-orange-600'
                     : 'bg-muted text-muted-foreground/50 cursor-not-allowed border-0'
                 }`}
               >

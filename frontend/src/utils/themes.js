@@ -2,11 +2,11 @@ export const themes = [
   {
     name: 'Microsoft Fluent',
     id: 'fluent',
-    fontFamily: { heading: 'Segoe UI', body: 'Segoe UI' },
-    headingWeight: 600,
+    fontFamily: { heading: 'Outfit', body: 'DM Sans' },
+    headingWeight: 700,
     colors: {
       primary: '#0078d4',
-      accent: '#ffb900',       // amber pop for stats/highlights, distinct from blue
+      accent: '#ffb900',
       background: '#ffffff',
       surface: '#f3f2f1',
       border: '#e1dfdd',
@@ -17,11 +17,11 @@ export const themes = [
   {
     name: 'Dalibio',
     id: 'dalibio',
-    fontFamily: { heading: 'Inter', body: 'Inter' },
+    fontFamily: { heading: 'Cormorant Garamond', body: 'Outfit' },
     headingWeight: 700,
     colors: {
       primary: '#c2410c',
-      accent: '#22d3ee',       // cyan pop, real hue contrast vs indigo primary
+      accent: '#22d3ee',
       background: '#ffffff',
       surface: '#f5f5ff',
       border: '#e0e0f5',
@@ -32,11 +32,11 @@ export const themes = [
   {
     name: 'Noir',
     id: 'noir',
-    fontFamily: { heading: 'Space Grotesk', body: 'Inter' },
-    headingWeight: 700,
+    fontFamily: { heading: 'Sora', body: 'DM Sans' },
+    headingWeight: 800,
     colors: {
       primary: '#18181b',
-      accent: '#facc15',       // yellow pop against near-black/white, high contrast
+      accent: '#facc15',
       background: '#ffffff',
       surface: '#f4f4f5',
       border: '#e4e4e7',
@@ -47,11 +47,11 @@ export const themes = [
   {
     name: 'Terra',
     id: 'terra',
-    fontFamily: { heading: 'Poppins', body: 'Source Sans Pro' },
-    headingWeight: 600,
+    fontFamily: { heading: 'Playfair Display', body: 'Source Sans 3' },
+    headingWeight: 700,
     colors: {
-      primary: '#b45309',       // warm amber/clay — real warm tone, not another purple
-      accent: '#0d9488',        // teal pop, complementary contrast
+      primary: '#b45309',
+      accent: '#0d9488',
       background: '#fffbf5',
       surface: '#fef3e2',
       border: '#f3dfc2',
@@ -62,11 +62,11 @@ export const themes = [
   {
     name: 'Indigo',
     id: 'indigo',
-    fontFamily: { heading: 'Poppins', body: 'Source Sans Pro' },
-    headingWeight: 600,
+    fontFamily: { heading: 'Clash Display', body: 'General Sans' },
+    headingWeight: 700,
     colors: {
       primary: '#ea580c',
-      accent: '#f43f5e',        // rose pop, distinct from indigo
+      accent: '#f43f5e',
       background: '#ffffff',
       surface: '#eef2ff',
       border: '#dce2fb',
@@ -77,11 +77,11 @@ export const themes = [
   {
     name: 'Orbit',
     id: 'orbit',
-    fontFamily: { heading: 'Space Grotesk', body: 'IBM Plex Sans' },
+    fontFamily: { heading: 'Space Grotesk', body: 'DM Sans' },
     headingWeight: 700,
     colors: {
       primary: '#7c3aed',
-      accent: '#34d399',        // emerald pop, complementary to violet
+      accent: '#34d399',
       background: '#ffffff',
       surface: '#f5f3ff',
       border: '#e4defc',
@@ -92,12 +92,12 @@ export const themes = [
   {
     name: 'Midnight',
     id: 'midnight',
-    fontFamily: { heading: 'Space Grotesk', body: 'IBM Plex Sans' },
+    fontFamily: { heading: 'Sora', body: 'Inter' },
     headingWeight: 700,
     colors: {
-      primary: '#f8fafc',       // light text/headings on dark bg
-      accent: '#22d3ee',        // cyan pop, glows on dark
-      background: '#0f172a',    // true dark theme — the variety your set was missing
+      primary: '#f8fafc',
+      accent: '#22d3ee',
+      background: '#0f172a',
       surface: '#1e293b',
       border: '#334155',
       text: '#e2e8f0',

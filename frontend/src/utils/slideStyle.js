@@ -43,17 +43,17 @@ const GENRE_KEYWORDS = {
 };
 
 const GENRE_PROFILES = {
-  business: { heading: "Montserrat", body: "Inter", accent: "#ea580c" },
-  finance: { heading: "Montserrat", body: "Inter", accent: "#047857" },
-  tech: { heading: "Space Grotesk", body: "IBM Plex Sans", accent: "#7c3aed" },
-  creative: { heading: "Playfair Display", body: "Poppins", accent: "#db2777" },
-  education: { heading: "Poppins", body: "Source Sans 3", accent: "#0d9488" },
-  science: { heading: "Merriweather", body: "Inter", accent: "#0891b2" },
-  health: { heading: "Poppins", body: "Lato", accent: "#059669" },
-  marketing: { heading: "Oswald", body: "Inter", accent: "#ea580c" },
-  nature: { heading: "Merriweather", body: "Poppins", accent: "#16a34a" },
-  food: { heading: "Lobster", body: "Poppins", accent: "#d97706" },
-  default: { heading: "Poppins", body: "Inter", accent: null },
+  business: { heading: "Clash Display", body: "General Sans", accent: "#1d4ed8" },
+  finance: { heading: "Sora", body: "DM Sans", accent: "#047857" },
+  tech: { heading: "Space Grotesk", body: "DM Sans", accent: "#7c3aed" },
+  creative: { heading: "Playfair Display", body: "Outfit", accent: "#db2777" },
+  education: { heading: "Outfit", body: "Source Sans 3", accent: "#0d9488" },
+  science: { heading: "Cormorant Garamond", body: "DM Sans", accent: "#0891b2" },
+  health: { heading: "Outfit", body: "General Sans", accent: "#059669" },
+  marketing: { heading: "Sora", body: "Outfit", accent: "#ea580c" },
+  nature: { heading: "Playfair Display", body: "Source Sans 3", accent: "#16a34a" },
+  food: { heading: "Cormorant Garamond", body: "Outfit", accent: "#d97706" },
+  default: { heading: "Clash Display", body: "DM Sans", accent: null },
 };
 
 export function detectGenre(text = "") {
@@ -84,18 +84,18 @@ function shadeColor(hex, percent) {
 }
 
 export function getSlideStyle({ topic = "", theme = {}, sizes = {} } = {}) {
-  const genre = detectGenre(topic);
+  const genre = detectGenre(topic); 
   const profile = GENRE_PROFILES[genre] || GENRE_PROFILES.default;
 
   const themeColors = theme?.colors || {};
   const themeFonts = theme?.fontFamily || theme?.fonts || {};
 
-  const headingColor = profile.accent || themeColors.primary || "#7c2d12";
+  const headingColor = profile.accent || themeColors.primary || "#312e81";
   const bulletColor = themeColors.text || shadeColor(headingColor, -20) || "#334155";
   const accentColor = profile.accent || themeColors.accent || headingColor;
 
-  const headingFont = profile.heading || themeFonts.heading || "Poppins";
-  const bodyFont = profile.body || themeFonts.body || "Inter";
+  const headingFont = profile.heading || themeFonts.heading || "Clash Display";
+  const bodyFont = profile.body || themeFonts.body || "DM Sans";
 
   const baseHeading = sizes.headingSize || 34;
   const baseBullet = sizes.bulletSize || 18;

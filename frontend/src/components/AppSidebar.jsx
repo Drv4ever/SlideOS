@@ -205,7 +205,7 @@ export function AppSidebar({ onLogout }) {
         <SidebarSeparator />
 
         {/* Navigation */}
-        <SidebarGroup>
+        <SidebarGroup className="bg-sidebar-accent/50 rounded-xl">
           <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -214,6 +214,7 @@ export function AppSidebar({ onLogout }) {
                   isActive={location.pathname === '/'}
                   onClick={() => navigate('/')}
                   tooltip="Home"
+                  className="transition-all duration-150"
                 >
                   <Home />
                   <span>Home</span>
@@ -224,6 +225,7 @@ export function AppSidebar({ onLogout }) {
                   isActive={location.pathname === '/my-presentations'}
                   onClick={() => navigate('/my-presentations')}
                   tooltip="Library"
+                  className="transition-all duration-150"
                 >
                   <Library />
                   <span>Library</span>
@@ -236,7 +238,7 @@ export function AppSidebar({ onLogout }) {
         <SidebarSeparator />
 
         {/* Preset Engines */}
-        <SidebarGroup>
+        <SidebarGroup className="bg-sidebar-accent/50 rounded-xl">
           <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">Engines</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -244,6 +246,7 @@ export function AppSidebar({ onLogout }) {
                 <SidebarMenuButton
                   onClick={() => handlePresetEngineClick('cinematic')}
                   tooltip="Creative Engine"
+                  className="transition-all duration-150"
                 >
                   <Video />
                   <span>Creative Engine</span>
@@ -253,6 +256,7 @@ export function AppSidebar({ onLogout }) {
                 <SidebarMenuButton
                   onClick={() => handlePresetEngineClick('poster')}
                   tooltip="Outline Planner"
+                  className="transition-all duration-150"
                 >
                   <Layout />
                   <span>Outline Planner</span>
@@ -262,6 +266,7 @@ export function AppSidebar({ onLogout }) {
                 <SidebarMenuButton
                   onClick={() => handlePresetEngineClick('realism')}
                   tooltip="Minimalist Studio"
+                  className="transition-all duration-150"
                 >
                   <SlidersHorizontal />
                   <span>Minimalist Studio</span>
@@ -274,7 +279,7 @@ export function AppSidebar({ onLogout }) {
         <SidebarSeparator className="group-data-[collapsible=icon]:hidden" />
 
         {/* Recent Decks */}
-        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+        <SidebarGroup className="bg-sidebar-accent/50 rounded-xl group-data-[collapsible=icon]:hidden">
           <SidebarGroupLabel>Recent Slide Decks</SidebarGroupLabel>
           <SidebarGroupContent>
             {loadingDecks ? (

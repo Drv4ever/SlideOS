@@ -26,6 +26,15 @@ import {
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+} from "../components/ui/pagination";
+import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -67,7 +76,7 @@ export default function PresentationView() {
   const bodyFont =
     incomingTheme?.fontFamily?.body ||
     incomingTheme?.fonts?.body ||
-    "Inter";
+    "DM Sans";
   const headingFont =
     incomingTheme?.fontFamily?.heading ||
     incomingTheme?.fonts?.heading ||
@@ -604,6 +613,24 @@ export default function PresentationView() {
     }
   };
 
+  const getPageNumbers = () => {
+    const total = slides.length;
+    const current = activeIndex + 1;
+    const pages = [];
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (current > 3) pages.push('...');
+      const start = Math.max(2, current - 1);
+      const end = Math.min(total - 1, current + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (current < total - 2) pages.push('...');
+      pages.push(total);
+    }
+    return pages;
+  };
+
   return (
     <SidebarProvider className="bg-muted text-foreground font-sans select-none">
       <Sidebar collapsible="offcanvas" variant="sidebar">
@@ -852,9 +879,43 @@ export default function PresentationView() {
 
             {/* Left Toolbar Side: Selected Element controls */}
             <div className="flex items-center gap-3">
-              <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider bg-muted/80 px-2.5 py-1 rounded-lg">
-                Slide {activeIndex + 1}/{slides.length}
-              </span>
+              <Pagination className="w-auto mx-0">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(e) => { e.preventDefault(); if (activeIndex > 0) setActiveIndex(activeIndex - 1); }}
+                      className={`${activeIndex === 0 ? 'pointer-events-none opacity-30' : ''} [&_svg]:size-4`}
+                    />
+                  </PaginationItem>
+                  {getPageNumbers().map((page, i) =>
+                    page === '...' ? (
+                      <PaginationItem key={`e${i}`}>
+                        <PaginationEllipsis className="[&_svg]:size-3.5 text-muted-foreground" />
+                      </PaginationItem>
+                    ) : (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => { e.preventDefault(); setActiveIndex(page - 1); }}
+                          isActive={activeIndex === page - 1}
+                          size="icon"
+                          className="text-xs font-bold w-7 h-7"
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    )
+                  )}
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => { e.preventDefault(); if (activeIndex < slides.length - 1) setActiveIndex(activeIndex + 1); }}
+                      className={`${activeIndex === slides.length - 1 ? 'pointer-events-none opacity-30' : ''} [&_svg]:size-4`}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
 
               {selectedElement?.type === "text" && (
                 <div className="flex items-center gap-2 border-l border-border pl-3">
@@ -930,8 +991,8 @@ export default function PresentationView() {
           {/* THE PHYSICAL SLIDE CARD */}
           <div
             style={{
-              width: 960,
-              height: 540,
+              width: 1100,
+              height: 618,
               background: getBackgroundStyle(),
               position: "relative",
             }}

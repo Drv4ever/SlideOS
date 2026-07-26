@@ -135,13 +135,19 @@ if (isPresentationRoute) {
         {isAuthenticated ? (
           <SidebarProvider>
             <AppSidebar onLogout={handleLogout} />
-            <div className="flex flex-1 flex-col min-h-svh p-4">
+            <div className="flex flex-1 flex-col min-h-svh">
+              <Header
+                themeColors={presentationTheme}
+                isAuthenticated={isAuthenticated}
+              />
+              <div className="flex flex-1 flex-col p-4">
               <div className="flex items-center gap-2 mb-2">
                 <SidebarTrigger />
               </div>
               <main className="flex-1 overflow-y-auto bg-card rounded-2xl border border-border shadow-md p-6 md:p-8">
                 {mainContent}
               </main>
+              </div>
             </div>
           </SidebarProvider>
         ) : (
