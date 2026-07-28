@@ -160,7 +160,7 @@ export function AppSidebar({ onLogout }) {
             type="button"
           >
             <div className="flex items-center gap-1.5">
-              <div className="w-5 h-5 rounded-full bg-orange-600 flex items-center justify-center shadow-xs shrink-0">
+              <div className="w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center shadow-xs shrink-0">
                 <div className="w-2.5 h-2.5 rounded-full bg-white" />
               </div>
               <div className="w-8 h-4 rounded-full bg-gradient-to-r from-orange-500 to-cyan-400 opacity-90 shadow-xs" />
@@ -184,7 +184,7 @@ export function AppSidebar({ onLogout }) {
         <div className="hidden group-data-[collapsible=icon]:flex justify-center py-3">
           <button
             onClick={() => navigate('/')}
-            className="w-6 h-6 rounded-full bg-orange-600 flex items-center justify-center shadow-xs cursor-pointer bg-transparent border-0 focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+            className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center shadow-xs cursor-pointer bg-transparent border-0 focus-visible:ring-2 focus-visible:ring-sidebar-ring"
             type="button"
             aria-label="Home"
           >
@@ -205,7 +205,7 @@ export function AppSidebar({ onLogout }) {
         <SidebarSeparator />
 
         {/* Navigation */}
-        <SidebarGroup className="bg-sidebar-accent/50 rounded-xl">
+        <SidebarGroup className="bg-sidebar-accent/50 rounded-xl px-0 mx-0 w-auto">
           <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -238,7 +238,7 @@ export function AppSidebar({ onLogout }) {
         <SidebarSeparator />
 
         {/* Preset Engines */}
-        <SidebarGroup className="bg-sidebar-accent/50 rounded-xl">
+        <SidebarGroup className="bg-sidebar-accent/50 rounded-xl px-0 mx-0 w-auto">
           <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">Engines</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -279,7 +279,7 @@ export function AppSidebar({ onLogout }) {
         <SidebarSeparator className="group-data-[collapsible=icon]:hidden" />
 
         {/* Recent Decks */}
-        <SidebarGroup className="bg-sidebar-accent/50 rounded-xl group-data-[collapsible=icon]:hidden">
+        <SidebarGroup className="bg-sidebar-accent/50 rounded-xl px-0 mx-0 w-auto group-data-[collapsible=icon]:hidden">
           <SidebarGroupLabel>Recent Slide Decks</SidebarGroupLabel>
           <SidebarGroupContent>
             {loadingDecks ? (

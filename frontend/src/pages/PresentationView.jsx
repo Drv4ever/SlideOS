@@ -740,12 +740,12 @@ export default function PresentationView() {
                       onClick={() => setActiveIndex(index)}
                       className={`flex flex-col p-2.5 rounded-xl border-2 text-left cursor-pointer transition-all hover:shadow-xs group relative ${
                         index === activeIndex
-                          ? "border-orange-600 bg-sidebar-accent/80 shadow-xs"
+                          ? "border-orange-500 bg-sidebar-accent/80 shadow-xs"
                           : "border-border bg-sidebar-accent hover:border-border"
                       }`}
                     >
                       <div className="flex justify-between items-center mb-1.5">
-                        <span className={`text-[10px] font-bold ${index === activeIndex ? 'text-orange-600' : 'text-muted-foreground'}`}>
+                        <span className={`text-[10px] font-bold ${index === activeIndex ? 'text-orange-500' : 'text-muted-foreground'}`}>
                           SLIDE {(index + 1).toString().padStart(2, '0')}
                         </span>
                         
@@ -773,7 +773,7 @@ export default function PresentationView() {
                           <>
                             <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-cyan-400/20 blur-xs pointer-events-none z-0" />
                             <div className="absolute -bottom-4 -left-4 w-9 h-9 rounded-full bg-purple-500/10 blur-xs pointer-events-none z-0" />
-                            <div className="absolute top-0 left-0 right-0 h-0.5 bg-orange-600 pointer-events-none z-0" />
+                            <div className="absolute top-0 left-0 right-0 h-0.5 bg-orange-500 pointer-events-none z-0" />
                           </>
                         )}
                         <div
@@ -965,7 +965,7 @@ export default function PresentationView() {
 
               <button
                 onClick={startFullscreenPresent}
-                className="flex items-center gap-1.5 bg-orange-600 hover:bg-orange-700 text-white shadow-sm font-semibold px-4 py-1.5 rounded-xl text-xs cursor-pointer active:scale-95 transition-all border-t border-white/35 border-x border-white/15 border-b-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_4px_12px_rgba(249,115,22,0.25)]"
+                className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white shadow-sm font-semibold px-4 py-1.5 rounded-xl text-xs cursor-pointer active:scale-95 transition-all border-t border-white/35 border-x border-white/15 border-b-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_4px_12px_rgba(249,115,22,0.25)]"
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
                 <span>Present</span>
@@ -1001,9 +1001,9 @@ export default function PresentationView() {
             {/* Microsoft Fluent Theme Accents */}
             {themeIdState === "fluent" && (
               <>
-                <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-gradient-to-br from-cyan-400/20 to-orange-600/20 blur-2xl pointer-events-none z-0" />
+                <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-gradient-to-br from-cyan-400/20 to-orange-500/20 blur-2xl pointer-events-none z-0" />
                 <div className="absolute -bottom-36 -left-36 w-96 h-96 rounded-full bg-gradient-to-tr from-purple-500/10 to-orange-500/10 blur-2xl pointer-events-none z-0" />
-                <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-orange-600 to-cyan-400 pointer-events-none z-0" />
+                <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-orange-500 to-cyan-400 pointer-events-none z-0" />
               </>
             )}
 
@@ -1065,11 +1065,11 @@ export default function PresentationView() {
                 {/* Figma-Style circular drag corner handles for selected items */}
                 {selectedId === el.id && (
                   <>
-                    <div className="absolute inset-0 border border-orange-600/90 pointer-events-none rounded-sm" />
-                    <div className="absolute -top-1 -left-1 w-2.5 h-2.5 bg-card border-1.5 border-orange-600 rounded-full z-10 pointer-events-none shadow-sm" />
-                    <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-card border-1.5 border-orange-600 rounded-full z-10 pointer-events-none shadow-sm" />
-                    <div className="absolute -bottom-1 -left-1 w-2.5 h-2.5 bg-card border-1.5 border-orange-600 rounded-full z-10 pointer-events-none shadow-sm" />
-                    <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-card border-1.5 border-orange-600 rounded-full z-10 pointer-events-none shadow-sm" />
+                    <div className="absolute inset-0 border border-orange-500/90 pointer-events-none rounded-sm" />
+                    <div className="absolute -top-1 -left-1 w-2.5 h-2.5 bg-card border-1.5 border-orange-500 rounded-full z-10 pointer-events-none shadow-sm" />
+                    <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-card border-1.5 border-orange-500 rounded-full z-10 pointer-events-none shadow-sm" />
+                    <div className="absolute -bottom-1 -left-1 w-2.5 h-2.5 bg-card border-1.5 border-orange-500 rounded-full z-10 pointer-events-none shadow-sm" />
+                    <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-card border-1.5 border-orange-500 rounded-full z-10 pointer-events-none shadow-sm" />
                   </>
                 )}
               </Rnd>
@@ -1137,9 +1137,9 @@ export default function PresentationView() {
               {/* Microsoft Fluent Theme Accents */}
               {themeIdState === "fluent" && (
                 <>
-                  <div className="absolute -top-24 -right-24 w-[35%] aspect-square rounded-full bg-gradient-to-br from-cyan-400/20 to-orange-600/20 blur-3xl pointer-events-none z-0" />
+                  <div className="absolute -top-24 -right-24 w-[35%] aspect-square rounded-full bg-gradient-to-br from-cyan-400/20 to-orange-500/20 blur-3xl pointer-events-none z-0" />
                   <div className="absolute -bottom-36 -left-36 w-[40%] aspect-square rounded-full bg-gradient-to-tr from-purple-500/10 to-orange-500/10 blur-3xl pointer-events-none z-0" />
-                  <div className="absolute top-0 left-0 right-0 h-[1.5%] bg-gradient-to-r from-orange-600 to-cyan-400 pointer-events-none z-0" />
+                  <div className="absolute top-0 left-0 right-0 h-[1.5%] bg-gradient-to-r from-orange-500 to-cyan-400 pointer-events-none z-0" />
                 </>
               )}
 

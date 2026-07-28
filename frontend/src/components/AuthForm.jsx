@@ -81,7 +81,7 @@ export function AuthForm({ onAuthSuccess, theme, isModal = false }) {
   return (
     <div className={`w-full flex justify-center items-center select-none font-jakarta ${isModal ? '' : 'py-12 px-4'}`}>
       <div className={`w-full ${isModal ? 'bg-transparent' : 'max-w-sm border border-slate-200/80 bg-white p-6 rounded-2xl shadow-[0_20px_50px_rgba(15,23,42,0.06)] relative'}`}>
-        {!isModal && <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-600 to-cyan-400" />}
+        {!isModal && <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-500 to-cyan-400" />}
         
         {/* Tab Selection */}
         <div className="flex gap-1.5 rounded-xl bg-slate-100 p-1 mb-6">
@@ -90,7 +90,7 @@ export function AuthForm({ onAuthSuccess, theme, isModal = false }) {
             onClick={() => setMode("login")}
             className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border-0 outline-none ${
               mode === "login"
-                ? "bg-white text-orange-600 shadow-2xs border border-slate-200/50"
+                ? "bg-white text-orange-500 shadow-2xs border border-slate-200/50"
                 : "text-slate-500 hover:text-slate-800"
             }`}
           >
@@ -101,7 +101,7 @@ export function AuthForm({ onAuthSuccess, theme, isModal = false }) {
             onClick={() => setMode("register")}
             className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border-0 outline-none ${
               mode === "register"
-                ? "bg-white text-orange-600 shadow-2xs border border-slate-200/50"
+                ? "bg-white text-orange-500 shadow-2xs border border-slate-200/50"
                 : "text-slate-500 hover:text-slate-800"
             }`}
           >

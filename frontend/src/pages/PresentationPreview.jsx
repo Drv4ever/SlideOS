@@ -184,7 +184,7 @@ export default function PresentationPreview() {
               aria-label="Presentation title"
               title="Click to rename"
             />
-            <span className="text-[10px] text-orange-600 font-bold tracking-wider uppercase mt-0.5 leading-none">
+            <span className="text-[10px] text-orange-500 font-bold tracking-wider uppercase mt-0.5 leading-none">
               Outline Editor
             </span>
           </div>
@@ -318,7 +318,7 @@ export default function PresentationPreview() {
         {/* Add Card dashed placeholder */}
         <button
           onClick={addSlide}
-          className="w-full border-2 border-dashed border-border hover:border-orange-400 hover:bg-sidebar hover:shadow-xs rounded-2xl py-4 flex items-center justify-center gap-2 cursor-pointer transition-all text-muted-foreground hover:text-orange-600 text-sm font-semibold active:scale-[0.99] bg-sidebar/30"
+          className="w-full border-2 border-dashed border-border hover:border-orange-400 hover:bg-sidebar hover:shadow-xs rounded-2xl py-4 flex items-center justify-center gap-2 cursor-pointer transition-all text-muted-foreground hover:text-orange-500 text-sm font-semibold active:scale-[0.99] bg-sidebar/30"
         >
           <PlusCircle className="w-4.5 h-4.5" />
           <span>Add New Slide</span>

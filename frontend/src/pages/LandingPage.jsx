@@ -26,7 +26,7 @@ export default function LandingPage({ onAuthSuccess, theme }) {
     {
       title: "Structure Effortlessly",
       body: "Let LLMs do the heavy lifting of researching, organizing, and outlining your key concepts.",
-      color: "from-orange-600 to-cyan-400",
+      color: "from-orange-500 to-cyan-400",
       accent: "stripe"
     },
     {
@@ -80,7 +80,7 @@ export default function LandingPage({ onAuthSuccess, theme }) {
       <header className="sticky top-0 z-50 w-full bg-background/90 backdrop-blur-sm border-b border-border">
       <div className="w-full max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-6 h-6 rounded-full bg-orange-600 flex items-center justify-center shadow-sm">
+          <div className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center shadow-sm">
             <div className="w-3 h-3 rounded-full bg-white" />
           </div>
           <span className="font-extrabold text-xl text-slate-100 tracking-tight">
@@ -104,7 +104,7 @@ export default function LandingPage({ onAuthSuccess, theme }) {
               setAuthTab('register');
               setShowAuthModal(true);
             }}
-            className="bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer shadow-xs border-t border-white/20 border-x border-white/10"
+            className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer shadow-xs border-t border-white/20 border-x border-white/10"
           >
             Get Started
           </button>
@@ -127,7 +127,7 @@ export default function LandingPage({ onAuthSuccess, theme }) {
           {/* Hero Headings with Cursive accents */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-slate-100 leading-[1.1]">
             Structure your slides{' '}
-            <span className="font-cursive text-orange-600 font-medium lowercase text-[1.15em] relative inline-block pr-1">
+            <span className="font-cursive text-orange-500 font-medium lowercase text-[1.15em] relative inline-block pr-1">
               beautifully
             </span>{' '}
             in seconds.
@@ -157,7 +157,7 @@ export default function LandingPage({ onAuthSuccess, theme }) {
             <button
               type="submit"
               disabled={!promptText.trim() || isSubmitting}
-              className="bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs py-2.5 px-5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-sm border-t border-white/20 border-x border-white/10 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs py-2.5 px-5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-sm border-t border-white/20 border-x border-white/10 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <span>Please wait...</span>
@@ -195,14 +195,14 @@ export default function LandingPage({ onAuthSuccess, theme }) {
             {/* Interactive master slide design elements */}
             {mockSlides[activeMockIndex].accent === "fluent" && (
               <>
-                <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-gradient-to-br from-cyan-400/20 to-orange-600/20 blur-xl pointer-events-none z-0" />
+                <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-gradient-to-br from-cyan-400/20 to-orange-500/20 blur-xl pointer-events-none z-0" />
                 <div className="absolute -bottom-16 -left-16 w-60 h-60 rounded-full bg-gradient-to-tr from-purple-500/10 to-orange-500/10 blur-xl pointer-events-none z-0" />
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-600 to-cyan-400 pointer-events-none z-0" />
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500 to-cyan-400 pointer-events-none z-0" />
               </>
             )}
 
             {mockSlides[activeMockIndex].accent === "stripe" && (
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-600 to-cyan-400 pointer-events-none z-0" />
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500 to-cyan-400 pointer-events-none z-0" />
             )}
 
             {mockSlides[activeMockIndex].accent === "card" && (
@@ -211,7 +211,7 @@ export default function LandingPage({ onAuthSuccess, theme }) {
 
             {/* Slide Header preview */}
             <div className="flex items-center justify-between border-b border-border/50 pb-3 relative z-10">
-              <span className="text-[9px] font-extrabold text-orange-600 uppercase tracking-widest">
+              <span className="text-[9px] font-extrabold text-orange-500 uppercase tracking-widest">
                 SLIDE {(activeMockIndex + 1).toString().padStart(2, '0')} OF 03
               </span>
               <div className="flex gap-1">
@@ -237,7 +237,7 @@ export default function LandingPage({ onAuthSuccess, theme }) {
 
               {/* Play demo badge */}
               <div className="flex items-center gap-1.5 bg-muted px-2 py-1 rounded-lg border border-border text-[8px] font-bold text-foreground uppercase">
-                <span className="w-1.5 h-1.5 rounded-full bg-orange-600 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
                 <span>Auto Play</span>
               </div>
             </div>
@@ -318,7 +318,7 @@ export default function LandingPage({ onAuthSuccess, theme }) {
                     New to SlideOS?{' '}
                     <button 
                       onClick={() => setAuthTab('register')}
-                      className="text-orange-600 hover:underline cursor-pointer bg-transparent border-0 p-0 outline-none font-bold"
+                      className="text-orange-500 hover:underline cursor-pointer bg-transparent border-0 p-0 outline-none font-bold"
                     >
                       Sign Up
                     </button>
@@ -328,7 +328,7 @@ export default function LandingPage({ onAuthSuccess, theme }) {
                     Already have an account?{' '}
                     <button 
                       onClick={() => setAuthTab('login')}
-                      className="text-orange-600 hover:underline cursor-pointer bg-transparent border-0 p-0 outline-none font-bold"
+                      className="text-orange-500 hover:underline cursor-pointer bg-transparent border-0 p-0 outline-none font-bold"
                     >
                       Login
                     </button>

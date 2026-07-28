@@ -168,7 +168,7 @@ export function Sidebar({ onLogout }) {
         >
           {/* Custom Circle/Pill logo */}
           <div className="flex items-center gap-1.5">
-            <div className="w-5 h-5 rounded-full bg-orange-600 flex items-center justify-center shadow-xs">
+            <div className="w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center shadow-xs">
               <div className="w-2.5 h-2.5 rounded-full bg-white" />
             </div>
             <div className="w-8 h-4 rounded-full bg-gradient-to-r from-orange-500 to-cyan-400 opacity-90 shadow-xs" />
@@ -210,7 +210,7 @@ export function Sidebar({ onLogout }) {
             onClick={() => navigate('/')}
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-all text-left cursor-pointer ${
               location.pathname === '/' 
-                ? 'bg-orange-50/70 text-orange-600 shadow-2xs border border-orange-100/50' 
+                ? 'bg-orange-50/70 text-orange-500 shadow-2xs border border-orange-100/50' 
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
@@ -222,7 +222,7 @@ export function Sidebar({ onLogout }) {
             onClick={() => navigate('/my-presentations')}
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-all text-left cursor-pointer ${
               location.pathname === '/my-presentations' 
-                ? 'bg-orange-50/70 text-orange-600 shadow-2xs border border-orange-100/50' 
+                ? 'bg-orange-50/70 text-orange-500 shadow-2xs border border-orange-100/50' 
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >

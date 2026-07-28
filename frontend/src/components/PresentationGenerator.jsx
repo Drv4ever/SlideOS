@@ -292,7 +292,7 @@ export function PresentationGenerator({ onThemeChange }) {
                 }`}
               >
                 {isGenerating ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-orange-600" />
+                  <Loader2 className="w-4 h-4 animate-spin text-orange-500" />
                 ) : (
                   <ArrowUp className="w-4 h-4" />
                 )}

@@ -19,7 +19,7 @@ export class ErrorBoundary extends Component {
       return (
         <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-8">
           <div className="max-w-md text-center space-y-4">
-            <div className="w-12 h-12 rounded-full bg-orange-600 flex items-center justify-center mx-auto">
+            <div className="w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center mx-auto">
               <span className="text-white text-lg font-bold">!</span>
             </div>
             <h1 className="text-xl font-bold">Something went wrong</h1>
@@ -31,7 +31,7 @@ export class ErrorBoundary extends Component {
                 this.setState({ hasError: false, error: null });
                 window.location.href = "/";
               }}
-              className="bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer border-t border-white/20 border-x border-white/10"
+              className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer border-t border-white/20 border-x border-white/10"
             >
               Go Home
             </button>
