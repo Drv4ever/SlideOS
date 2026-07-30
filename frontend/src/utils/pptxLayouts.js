@@ -89,7 +89,7 @@ function addCard(slide, { x, y, w, h, title, body }) {
     w,
     h,
     fill: { color: "E8E8F0" },
-    line: { type: "none" },
+    line: { color: "FFFFFF00" },
     rectRadius: 0.08,
   });
   slide.addText(title, {
@@ -115,14 +115,23 @@ function addCard(slide, { x, y, w, h, title, body }) {
 function addFullBleedImage(slide, imageUrl, side = "right") {
   const x = side === "right" ? 6.0 : 0;
   const w = side === "right" ? 4.0 : 6.0;
-  slide.addImage({
-    data: imageUrl,
-    x,
-    y: 0,
-    w,
-    h: SLIDE_H,
-    sizing: { type: "cover", w, h: SLIDE_H },
-  });
+  if (imageUrl.startsWith("data:")) {
+    slide.addImage({
+      data: imageUrl,
+      x,
+      y: 0,
+      w,
+      h: SLIDE_H,
+    });
+  } else {
+    slide.addImage({
+      path: imageUrl,
+      x,
+      y: 0,
+      w,
+      h: SLIDE_H,
+    });
+  }
 }
 
 export function titleSlideLayout(slide, theme, title, slideData) {
