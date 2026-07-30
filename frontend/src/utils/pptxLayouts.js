@@ -88,8 +88,8 @@ function addCard(slide, { x, y, w, h, title, body }) {
     y,
     w,
     h,
-    fill: { color: "E8E8F0" },
-    line: { color: "FFFFFF00" },
+    fill: { color: "F8F9FA" },
+    line: { color: "E8E8F0", width: 0.5 },
     rectRadius: 0.08,
   });
   slide.addText(title, {
