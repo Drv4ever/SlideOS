@@ -5,6 +5,15 @@ import PptxGenJS from "pptxgenjs";
 import { updatePresentation } from "../services/presentationService";
 import { applyTemplate } from "../utils/templates";
 import {
+  defineMaster,
+  titleSlideLayout,
+  sectionDividerLayout,
+  bigStatLayout,
+  twoColumnLayout,
+  contentOnlyLayout,
+  modernLayout,
+} from "../utils/pptxLayouts";
+import {
   Copy,
   Type,
   Image as ImageIcon,
@@ -392,81 +401,64 @@ export default function PresentationView() {
   const exportPPT = () => {
     const pres = new PptxGenJS();
 
-    const getPptBackgroundFill = (background) => {
-      if (!background) return null;
-      if (background.type === "color" && background.value?.startsWith("#")) {
-        return background.value.replace("#", "");
-      }
-      if (background.type === "gradient" && typeof background.value === "string") {
-        const colors = background.value.match(/#[0-9a-fA-F]{3,8}/g);
-        if (colors?.length) {
-          return colors[0].replace("#", "");
-        }
-      }
-      return null;
+    const cleanHex = (hex) => (hex || "").replace("#", "");
+
+    const themeColors = {
+      primary: cleanHex(defaultTheme.primary),
+      accent: cleanHex(defaultTheme.accent),
+      background: cleanHex(defaultTheme.background),
+      text: cleanHex(defaultTheme.text),
+      textMuted: cleanHex(defaultTheme.textMuted),
     };
 
-    slides.forEach((slideData) => {
-      const slide = pres.addSlide();
+    defineMaster(pres, themeColors);
 
-      // Handle image background (full slide)
-      if (slideData.background?.type === "image" && slideData.background?.value) {
-        slide.addImage({
-          data: slideData.background.value,
-          x: 0,
-          y: 0,
-          w: 10,
-          h: 7.5,
-        });
-      } else {
-        const backgroundFill = getPptBackgroundFill(slideData.background);
-        if (backgroundFill) {
-          slide.background = { fill: backgroundFill };
-        }
+    slides.forEach((slideData) => {
+      const layoutPattern =
+        slideData.layoutPattern || slideData.layout || "content-only";
+      const slide = pres.addSlide({ masterName: "MODERN_MASTER" });
+
+      const bgFill =
+        slideData.background?.type === "color" &&
+        slideData.background?.value?.startsWith("#")
+          ? cleanHex(slideData.background.value)
+          : slideData.background?.type === "gradient" &&
+              typeof slideData.background?.value === "string"
+            ? cleanHex(
+                slideData.background.value.match(
+                  /#[0-9a-fA-F]{3,8}/g
+                )?.[0]
+              )
+            : null;
+
+      if (bgFill) {
+        slide.background = { fill: bgFill };
       }
 
-      // Separate background images (zIndex 0) from foreground elements
-      const bgImages = slideData.elements.filter((el) => el.type === "image" && el.zIndex === 0);
-      const fgElements = slideData.elements.filter((el) => !(el.type === "image" && el.zIndex === 0));
-
-      // Add background images first
-      bgImages.forEach((el) => {
-        slide.addImage({
-          data: el.src,
-          x: el.x / 100,
-          y: el.y / 100,
-          w: el.width / 100,
-          h: el.height / 100,
-        });
-      });
-
-      fgElements.forEach((el) => {
-        if (el.type === "text") {
-          slide.addText(el.content, {
-            x: el.x / 100,
-            y: el.y / 100,
-            w: el.width / 100,
-            h: el.height / 100,
-            fontSize: el.fontSize,
-            bold: el.bold,
-            color: el.color ? el.color.replace("#", "") : undefined,
-            fontFace: el.fontFamily || undefined,
-            align: el.align || "left",
-            fit: "shrink",
-            margin: 2,
-          });
-        }
-
-        if (el.type === "image") {
-          slide.addImage({
-            data: el.src,
-            x: el.x / 100,
-            y: el.y / 100,
-            w: el.width / 100,
-            h: el.height / 100,
-          });
-        }
-      });
+      switch (layoutPattern) {
+        case "title-slide":
+          titleSlideLayout(slide, themeColors, presentationTitle, slideData);
+          break;
+        case "section-divider":
+          sectionDividerLayout(slide, themeColors, slideData);
+          break;
+        case "big-stat":
+          bigStatLayout(slide, themeColors, slideData);
+          break;
+        case "two-column":
+          twoColumnLayout(slide, themeColors, slideData);
+          break;
+        default:
+          if (
+            slideData.elements?.some(
+              (e) => e.type === "image" && e.zIndex !== 0
+            )
+          ) {
+            modernLayout(slide, themeColors, slideData);
+          } else {
+            contentOnlyLayout(slide, themeColors, slideData);
+          }
+      }
     });
 
     pres.writeFile({ fileName: `${presentationTitle || "Presentation"}.pptx` });
