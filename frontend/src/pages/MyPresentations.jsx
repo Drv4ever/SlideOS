@@ -52,6 +52,7 @@ export default function MyPresentations() {
             presentationId: record?._id || id,
             title: record?.title || "Untitled Presentation",
             themeId: record?.theme || "custom",
+            theme: content.theme || null,
           },
         });
         return;
@@ -64,6 +65,7 @@ export default function MyPresentations() {
           title: record?.title || "Untitled Presentation",
           themeId: record?.theme || "cornflower",
           textAmount: content?.textAmount || "detailed",
+          theme: content?.theme || null,
         },
       });
     } catch (error) {

@@ -2,22 +2,30 @@ import { CURATED_LOOKUP } from "./themes";
 
 export { CURATED_LOOKUP };
 
-const LEGACY_LAYOUTS = ["stripe", "split", "card", "header", "plain"];
+const LEGACY_LAYOUTS = ["content-only", "bullets-image", "two-column", "section-divider", "bullets-image"];
 
 export function normalizePresentation(data, fallbackThemeId = "cornflower") {
   if (!data) return { title: "Untitled", theme: CURATED_LOOKUP[fallbackThemeId], slides: [] };
 
   const rawSlides = Array.isArray(data.slides) ? data.slides : [];
   const normalizedSlides = rawSlides.map((slide, i) => {
-    // New rich format
+    // New rich format with elements array (from editor)
     if (Array.isArray(slide.elements)) {
-      return { layout: slide.layout || "header", heading: slide.heading, elements: slide.elements };
+      return {
+        layout: slide.layout || LEGACY_LAYOUTS[i % LEGACY_LAYOUTS.length],
+        heading: slide.heading,
+        image: slide.image,
+        elements: slide.elements,
+      };
     }
-    // Legacy format { heading, content: string[] }
+    // LLM-generated format with imageKeyword, layout, image
     const content = Array.isArray(slide.content) ? slide.content : [];
     return {
-      layout: LEGACY_LAYOUTS[i % LEGACY_LAYOUTS.length],
+      layout: slide.layout || LEGACY_LAYOUTS[i % LEGACY_LAYOUTS.length],
       heading: slide.heading || `Slide ${i + 1}`,
+      content: content,
+      imageKeyword: slide.imageKeyword,
+      image: slide.image || null,
       elements: [{ type: "heading", content: slide.heading || "" }, { type: "bullet", content: "", items: content }],
     };
   });

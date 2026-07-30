@@ -1,6 +1,14 @@
 
+const IMAGE_KEYWORDS = [
+  "professional workspace", "data analytics dashboard", "team collaboration",
+  "innovation lightbulb", "growth chart upward", "digital transformation",
+  "global network", "future technology", "strategic planning",
+  "sustainable energy", "abstract geometry", "creative brainstorming"
+];
+
+const LAYOUTS = ["title-slide", "bullets-image", "two-column", "section-divider", "bullets-image", "big-stat", "content-only", "bullets-image"];
+
 export function fakeAIGenerate({ audience ,prompt,scenario, slides, textAmount, theme , tone }) {
-    // Typo fixes and correct naming
     const slideTemplates = [
         "Introduction and Executive Summary",
         "Historical Context and Evolution",
@@ -38,6 +46,8 @@ export function fakeAIGenerate({ audience ,prompt,scenario, slides, textAmount, 
                 const phraseIndex = (i + j) % detailedPhrases.length;
                 return detailedPhrases[phraseIndex];
             }),
+            imageKeyword: IMAGE_KEYWORDS[i % IMAGE_KEYWORDS.length],
+            layout: LAYOUTS[i % LAYOUTS.length],
         };
     });
 

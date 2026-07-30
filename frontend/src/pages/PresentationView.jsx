@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { Rnd } from "react-rnd";
 import PptxGenJS from "pptxgenjs";
 import { updatePresentation } from "../services/presentationService";
-import { getSlideStyle } from "../utils/slideStyle";
+import { applyTemplate } from "../utils/templates";
 import {
   Copy,
   Type,
@@ -82,42 +82,6 @@ export default function PresentationView() {
     incomingTheme?.fonts?.heading ||
     bodyFont;
 
-  const getTextLayoutSettings = () => {
-    if (textAmount === "minimal") {
-      return {
-        headingSize: 42,
-        bulletSize: 28,
-        charsPerLine: 40,
-        lineHeight: 32,
-        bulletGap: 12,
-      };
-    }
-    if (textAmount === "concise") {
-      return {
-        headingSize: 38,
-        bulletSize: 23,
-        charsPerLine: 46,
-        lineHeight: 28,
-        bulletGap: 10,
-      };
-    }
-    return {
-      headingSize: 34,
-      bulletSize: 18,
-      charsPerLine: 56,
-      lineHeight: 24,
-      bulletGap: 8,
-    };
-  };
-
-  const textLayout = getTextLayoutSettings();
-
-  const slideStyle = getSlideStyle({
-    topic: state?.title || rawSlides?.[0]?.heading || "",
-    theme: incomingTheme,
-    sizes: { headingSize: textLayout.headingSize, bulletSize: textLayout.bulletSize },
-  });
-
   const convertSlides = (slides) => {
     if (!slides.length) {
       return [
@@ -145,70 +109,83 @@ export default function PresentationView() {
       ];
     }
 
-    return slides.map((slide, slideIndex) => ({
-      background: {
+    return slides.map((slide, slideIndex) => {
+      // If slides already have positioned elements (from editor format),
+      // use them directly without re-applying templates
+      if (Array.isArray(slide.elements) && slide.elements.some((el) => el.type === "text" && el.x !== undefined)) {
+        return {
+          background: slide.background || { type: "color", value: defaultTheme.background },
+          layoutPattern: slide.layout || slide.layoutPattern || "content-only",
+          elements: slide.elements.map((el) => ({
+            id: el.id || `el-${slideIndex}-${Math.random().toString(36).slice(2, 6)}`,
+            type: el.type,
+            content: el.content,
+            src: el.src,
+            x: el.x,
+            y: el.y,
+            width: el.width,
+            height: el.height,
+            fontSize: el.fontSize,
+            bold: el.bold,
+            color: el.color,
+            fontFamily: el.fontFamily,
+            align: el.align,
+            zIndex: el.zIndex,
+            opacity: el.opacity,
+            borderRadius: el.borderRadius,
+          })),
+        };
+      }
+
+      // Otherwise, apply template based on layout type
+      const themeObj = {
+        colors: {
+          primary: defaultTheme.primary,
+          accent: defaultTheme.accent,
+          background: defaultTheme.background,
+          surface: defaultTheme.surface,
+          border: defaultTheme.border,
+          text: defaultTheme.text,
+          textMuted: defaultTheme.textMuted,
+        },
+        fontFamily: {
+          heading: headingFont,
+          body: bodyFont,
+        },
+      };
+
+      const layoutResult = applyTemplate(slide, themeObj);
+
+      const background = layoutResult.background || {
         type: "color",
         value: defaultTheme.background,
-      },
-      layoutPattern: slide.layoutPattern || ["stripe", "split", "card", "header", "plain"][slideIndex % 5],
-      elements: (() => {
-        const elements = [];
-        const richElements = Array.isArray(slide.elements) ? slide.elements : [];
-        const headingText =
-          slide.heading ||
-          richElements.find((el) => el.type === "heading")?.content ||
-          "";
-        let points;
-        if (Array.isArray(slide.content)) {
-          points = slide.content;
-        } else {
-          const bulletEl = richElements.find((el) => el.type === "bullet");
-          points = bulletEl?.items || [];
-        }
-        const headingLines = Math.max(1, Math.ceil(headingText.length / 30));
-        const headingHeight = Math.max(80, headingLines * 42);
-        const isTitleSlide = slideIndex === 0;
-        elements.push({
-          id: `title-${slideIndex}`,
-          type: "text",
-          content: headingText,
-          x: 100,
-          y: 70,
-          fontSize: isTitleSlide
-            ? slideStyle.titleSlideHeadingSize
-            : slideStyle.headingSize,
-          bold: true,
-          color: slideStyle.headingColor,
-          width: 760,
-          height: isTitleSlide ? Math.round(headingHeight * 1.3) : headingHeight,
-          fontFamily: slideStyle.headingFont,
-        });
+      };
 
-        let currentY = 70 + headingHeight + 25;
-        points.forEach((point, i) => {
-          const lines = Math.max(
-            1,
-            Math.ceil((point || "").length / textLayout.charsPerLine)
-          );
-          const bulletHeight = Math.max(42, lines * textLayout.lineHeight);
-          elements.push({
-            id: `bullet-${slideIndex}-${i}`,
-            type: "text",
-            content: point,
-            x: 120,
-            y: currentY,
-            fontSize: slideStyle.bulletSize,
-            bold: false,
-            color: slideStyle.bulletColor,
-            width: 720,
-            height: bulletHeight,
-            fontFamily: slideStyle.bodyFont,
-          });
-          currentY += bulletHeight + textLayout.bulletGap;
-        });
-        return elements;
-      })(),
-    }));
+      const elements = layoutResult.elements.map((el) => ({
+        id: el.id || `el-${slideIndex}-${Math.random().toString(36).slice(2, 6)}`,
+        type: el.type,
+        content: el.content,
+        src: el.src,
+        x: el.x,
+        y: el.y,
+        width: el.width,
+        height: el.height,
+        fontSize: el.fontSize,
+        bold: el.bold,
+        color: el.color,
+        fontFamily: el.fontFamily,
+        align: el.align,
+        zIndex: el.zIndex,
+        opacity: el.opacity,
+        borderRadius: el.borderRadius,
+      }));
+
+      return {
+        background,
+        layoutPattern: slide.layout || "content-only",
+        elements,
+      };
+    });
   };
 
   const [slides, setSlides] = useState(
@@ -340,7 +317,7 @@ export default function PresentationView() {
         type: "color",
         value: defaultTheme.background,
       },
-      layoutPattern: "plain",
+      layoutPattern: "content-only",
       elements: [
         {
           id: `title-${Date.now()}`,
@@ -351,8 +328,8 @@ export default function PresentationView() {
           fontSize: 36,
           bold: true,
           color: defaultTheme.text,
-          width: 500,
-          height: 80,
+          width: 860,
+          height: 60,
           fontFamily: headingFont,
         }
       ]
@@ -402,6 +379,7 @@ export default function PresentationView() {
         y: 200,
         width: 300,
         height: 200,
+        zIndex: 1,
       };
 
       const updated = [...slides];
@@ -431,12 +409,38 @@ export default function PresentationView() {
     slides.forEach((slideData) => {
       const slide = pres.addSlide();
 
-      const backgroundFill = getPptBackgroundFill(slideData.background);
-      if (backgroundFill) {
-        slide.background = { fill: backgroundFill };
+      // Handle image background (full slide)
+      if (slideData.background?.type === "image" && slideData.background?.value) {
+        slide.addImage({
+          data: slideData.background.value,
+          x: 0,
+          y: 0,
+          w: 10,
+          h: 7.5,
+        });
+      } else {
+        const backgroundFill = getPptBackgroundFill(slideData.background);
+        if (backgroundFill) {
+          slide.background = { fill: backgroundFill };
+        }
       }
 
-      slideData.elements.forEach((el) => {
+      // Separate background images (zIndex 0) from foreground elements
+      const bgImages = slideData.elements.filter((el) => el.type === "image" && el.zIndex === 0);
+      const fgElements = slideData.elements.filter((el) => !(el.type === "image" && el.zIndex === 0));
+
+      // Add background images first
+      bgImages.forEach((el) => {
+        slide.addImage({
+          data: el.src,
+          x: el.x / 100,
+          y: el.y / 100,
+          w: el.width / 100,
+          h: el.height / 100,
+        });
+      });
+
+      fgElements.forEach((el) => {
         if (el.type === "text") {
           slide.addText(el.content, {
             x: el.x / 100,
@@ -445,8 +449,9 @@ export default function PresentationView() {
             h: el.height / 100,
             fontSize: el.fontSize,
             bold: el.bold,
-            color: el.color.replace("#", ""),
+            color: el.color ? el.color.replace("#", "") : undefined,
             fontFace: el.fontFamily || undefined,
+            align: el.align || "left",
             fit: "shrink",
             margin: 2,
           });
@@ -468,11 +473,15 @@ export default function PresentationView() {
   };
 
   const getBackgroundStyle = () => {
+    if (!activeSlide?.background) return "#ffffff";
     if (activeSlide.background.type === "color") {
       return activeSlide.background.value;
     }
     if (activeSlide.background.type === "gradient") {
       return activeSlide.background.value;
+    }
+    if (activeSlide.background.type === "image") {
+      return "#ffffff";
     }
     return "#ffffff";
   };
@@ -580,7 +589,15 @@ export default function PresentationView() {
       const textElements = (slide.elements || []).filter((el) => el.type === "text");
       const heading = textElements[0]?.content || "Untitled Slide";
       const content = textElements.slice(1).map((el) => el.content || "").filter(Boolean);
-      return { heading, content };
+      const imageEl = (slide.elements || []).find((el) => el.type === "image" && el.zIndex !== 0);
+      return {
+        heading,
+        content,
+        layout: slide.layoutPattern || "content-only",
+        image: imageEl ? { url: imageEl.src, thumb: imageEl.src, alt: "slide image" } : slide.image || null,
+        imageKeyword: slide.imageKeyword || "",
+        elements: slide.elements || [],
+      };
     });
 
   const handleSavePresentation = async () => {
@@ -989,91 +1006,123 @@ export default function PresentationView() {
           }}
         >
           {/* THE PHYSICAL SLIDE CARD */}
-          <div
-            style={{
-              width: 1100,
-              height: 618,
-              background: getBackgroundStyle(),
-              position: "relative",
-            }}
-            className="rounded-2xl shadow-[0_24px_70px_rgba(15,23,42,0.08)] border border-border/50 overflow-hidden shrink-0 select-none"
-          >
-            {/* Microsoft Fluent Theme Accents */}
-            {themeIdState === "fluent" && (
-              <>
-                <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-gradient-to-br from-cyan-400/20 to-orange-500/20 blur-2xl pointer-events-none z-0" />
-                <div className="absolute -bottom-36 -left-36 w-96 h-96 rounded-full bg-gradient-to-tr from-purple-500/10 to-orange-500/10 blur-2xl pointer-events-none z-0" />
-                <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-orange-500 to-cyan-400 pointer-events-none z-0" />
-              </>
-            )}
+           <div
+             style={{
+               width: 1100,
+               height: 618,
+               background: getBackgroundStyle(),
+               position: "relative",
+             }}
+             className="rounded-2xl shadow-[0_24px_70px_rgba(15,23,42,0.08)] border border-border/50 overflow-hidden shrink-0 select-none"
+           >
+             {/* Microsoft Fluent Theme Accents */}
+             {themeIdState === "fluent" && (
+               <>
+                 <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-gradient-to-br from-cyan-400/20 to-orange-500/20 blur-2xl pointer-events-none z-0" />
+                 <div className="absolute -bottom-36 -left-36 w-96 h-96 rounded-full bg-gradient-to-tr from-purple-500/10 to-orange-500/10 blur-2xl pointer-events-none z-0" />
+                 <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-orange-500 to-cyan-400 pointer-events-none z-0" />
+               </>
+             )}
 
-            {activeSlide.elements.map((el) => (
-              <Rnd
-                key={el.id}
-                size={{ width: el.width, height: el.height }}
-                position={{ x: el.x, y: el.y }}
-                bounds="parent"
-                onDragStop={(e, d) =>
-                  updateElement(el.id, { x: d.x, y: d.y })
-                }
-                onResizeStop={(e, direction, ref, delta, position) =>
-                  updateElement(el.id, {
-                    width: parseInt(ref.style.width),
-                    height: parseInt(ref.style.height),
-                    x: position.x,
-                    y: position.y,
-                  })
-                }
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedId(el.id);
-                }}
-                className="relative"
-              >
-                {el.type === "text" && (
-                  <div
-                    contentEditable
-                    suppressContentEditableWarning
-                    onBlur={(e) =>
-                      updateElement(el.id, {
-                        content: e.target.innerText,
-                      })
-                    }
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      fontSize: el.fontSize,
-                      fontWeight: el.bold ? "bold" : "normal",
-                      color: el.color,
-                      fontFamily: `${el.fontFamily || bodyFont}, sans-serif`,
-                      padding: 4,
-                    }}
-                    className="outline-none break-words leading-relaxed select-text"
-                  >
-                    {el.content}
-                  </div>
-                )}
+             {/* Background Image (zIndex 0) */}
+             {activeSlide.background?.type === "image" && activeSlide.background.value && (
+               <img
+                 src={activeSlide.background.value}
+                 alt=""
+                 className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+               />
+             )}
 
-                {el.type === "image" && (
-                  <img
-                    src={el.src}
-                    alt=""
-                    className="w-full h-full object-cover rounded-md pointer-events-none"
-                  />
-                )}
+             {/* Background Image Elements (zIndex 0) */}
+             {activeSlide.elements
+               .filter((el) => el.type === "image" && el.zIndex === 0)
+               .map((el) => (
+                 <img
+                   key={el.id}
+                   src={el.src}
+                   alt=""
+                   className="absolute pointer-events-none"
+                   style={{
+                     left: el.x,
+                     top: el.y,
+                     width: el.width,
+                     height: el.height,
+                     opacity: el.opacity !== undefined ? el.opacity : 1,
+                     objectFit: "cover",
+                   }}
+                 />
+               ))}
 
-                {/* Figma-Style circular drag corner handles for selected items */}
-                {selectedId === el.id && (
-                  <>
-                    <div className="absolute inset-0 border border-orange-500/90 pointer-events-none rounded-sm" />
-                    <div className="absolute -top-1 -left-1 w-2.5 h-2.5 bg-card border-1.5 border-orange-500 rounded-full z-10 pointer-events-none shadow-sm" />
-                    <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-card border-1.5 border-orange-500 rounded-full z-10 pointer-events-none shadow-sm" />
-                    <div className="absolute -bottom-1 -left-1 w-2.5 h-2.5 bg-card border-1.5 border-orange-500 rounded-full z-10 pointer-events-none shadow-sm" />
-                    <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-card border-1.5 border-orange-500 rounded-full z-10 pointer-events-none shadow-sm" />
-                  </>
-                )}
-              </Rnd>
-            ))}
+             {activeSlide.elements
+               .filter((el) => !(el.type === "image" && el.zIndex === 0))
+               .map((el) => (
+               <Rnd
+                 key={el.id}
+                 size={{ width: el.width, height: el.height }}
+                 position={{ x: el.x, y: el.y }}
+                 bounds="parent"
+                 onDragStop={(e, d) =>
+                   updateElement(el.id, { x: d.x, y: d.y })
+                 }
+                 onResizeStop={(e, direction, ref, delta, position) =>
+                   updateElement(el.id, {
+                     width: parseInt(ref.style.width),
+                     height: parseInt(ref.style.height),
+                     x: position.x,
+                     y: position.y,
+                   })
+                 }
+                 onClick={(e) => {
+                   e.stopPropagation();
+                   setSelectedId(el.id);
+                 }}
+                 className="relative"
+               >
+                 {el.type === "text" && (
+                   <div
+                     contentEditable
+                     suppressContentEditableWarning
+                     onBlur={(e) =>
+                       updateElement(el.id, {
+                         content: e.target.innerText,
+                       })
+                     }
+                     style={{
+                       width: "100%",
+                       height: "100%",
+                       fontSize: el.fontSize,
+                       fontWeight: el.bold ? "bold" : "normal",
+                       color: el.color,
+                       fontFamily: `${el.fontFamily || bodyFont}, sans-serif`,
+                       padding: 4,
+                       textAlign: el.align || "left",
+                     }}
+                     className="outline-none break-words leading-relaxed select-text"
+                   >
+                     {el.content}
+                   </div>
+                 )}
+
+                 {el.type === "image" && (
+                   <img
+                     src={el.src}
+                     alt=""
+                     className="w-full h-full object-cover rounded-md pointer-events-none"
+                   />
+                 )}
+
+                 {/* Figma-Style circular drag corner handles for selected items */}
+                 {selectedId === el.id && (
+                   <>
+                     <div className="absolute inset-0 border border-orange-500/90 pointer-events-none rounded-sm" />
+                     <div className="absolute -top-1 -left-1 w-2.5 h-2.5 bg-card border-1.5 border-orange-500 rounded-full z-10 pointer-events-none shadow-sm" />
+                     <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-card border-1.5 border-orange-500 rounded-full z-10 pointer-events-none shadow-sm" />
+                     <div className="absolute -bottom-1 -left-1 w-2.5 h-2.5 bg-card border-1.5 border-orange-500 rounded-full z-10 pointer-events-none shadow-sm" />
+                     <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-card border-1.5 border-orange-500 rounded-full z-10 pointer-events-none shadow-sm" />
+                   </>
+                 )}
+               </Rnd>
+             ))}
           </div>
         </div>
       </main>
@@ -1143,7 +1192,36 @@ export default function PresentationView() {
                 </>
               )}
 
-              {slides[presentIndex]?.elements?.map((el, elementIndex) => (
+               {/* Background Image (zIndex 0) */}
+               {slides[presentIndex]?.background?.type === "image" && slides[presentIndex]?.background?.value && (
+                 <img
+                   src={slides[presentIndex].background.value}
+                   alt=""
+                   className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                 />
+               )}
+
+               {/* Background Image Elements (zIndex 0) */}
+               {slides[presentIndex]?.elements
+                 .filter((el) => el.type === "image" && el.zIndex === 0)
+                 .map((el) => (
+                   <img
+                     key={el.id}
+                     src={el.src}
+                     alt=""
+                     className="absolute pointer-events-none"
+                     style={{
+                       left: el.x,
+                       top: el.y,
+                       width: el.width,
+                       height: el.height,
+                       opacity: el.opacity !== undefined ? el.opacity : 1,
+                       objectFit: "cover",
+                     }}
+                   />
+                 ))}
+
+               {slides[presentIndex]?.elements?.filter((el) => !(el.type === "image" && el.zIndex === 0)).map((el, elementIndex) => (
                 <div
                   key={el.id}
                   style={{

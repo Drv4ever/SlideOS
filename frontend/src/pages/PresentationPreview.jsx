@@ -238,12 +238,35 @@ export default function PresentationPreview() {
               transition={{ duration: 0.25 }}
               className="bg-sidebar rounded-2xl border border-border/70 p-6 flex gap-5 items-start shadow-[0_16px_40px_-12px_rgba(15,23,42,0.06),0_4px_12px_rgba(15,23,42,0.02)] relative hover:border-border hover:shadow-[0_20px_48px_-10px_rgba(15,23,42,0.1),0_4px_16px_rgba(15,23,42,0.03)] transition-all group"
             >
-              {/* Slide Number Bubble */}
-              <div className="w-9 h-9 rounded-xl bg-muted border border-border text-muted-foreground flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
-                {(slideIndex + 1).toString().padStart(2, '0')}
-              </div>
+               {/* Slide Number Bubble */}
+               <div className="w-9 h-9 rounded-xl bg-muted border border-border text-muted-foreground flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                 {(slideIndex + 1).toString().padStart(2, '0')}
+               </div>
 
-              {/* Edit Details */}
+               {/* Stock Image Thumbnail */}
+               {slide.image?.url && (
+                 <div className="w-20 h-20 rounded-lg overflow-hidden border border-border shrink-0 relative group/image">
+                   <img
+                     src={slide.image.thumb || slide.image.url}
+                     alt={slide.image.alt || slide.imageKeyword || "slide visual"}
+                     className="w-full h-full object-cover"
+                   />
+                   <div className="absolute inset-0 bg-black/0 group-hover/image:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover/image:opacity-100">
+                     <span className="text-[9px] text-white font-bold">Unsplash</span>
+                   </div>
+                 </div>
+               )}
+
+               {/* Layout Badge */}
+               {slide.layout && (
+                 <div className="shrink-0 flex items-center">
+                   <span className="text-[9px] font-bold px-2 py-1 bg-muted/50 text-muted-foreground rounded-lg border border-border">
+                     {slide.layout.replace(/-/g, " ")}
+                   </span>
+                 </div>
+               )}
+
+               {/* Edit Details */}
               <div className="flex-1 flex flex-col text-left">
                 
                 {/* 1. Editable Title Heading */}
