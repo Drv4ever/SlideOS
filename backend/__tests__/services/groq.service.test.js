@@ -59,7 +59,7 @@ describe("generateWithGroq", () => {
     );
 
     const body = JSON.parse(global.fetch.mock.calls[0][1].body);
-    expect(body.model).toBe("llama-3.3-70b-versatile");
+    expect(body.model).toBe("llama-3.1-8b-instant");
     expect(body.temperature).toBe(0.7);
     expect(body.response_format).toEqual({ type: "json_object" });
     expect(body.messages[0]).toHaveProperty("role", "system");

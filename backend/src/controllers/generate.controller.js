@@ -24,10 +24,12 @@ export const generatePresentation = async (req, res) => {
         errMsg.includes("GROQ_API_KEY") ||
         errMsg.includes("401") ||
         errMsg.includes("403") ||
+        errMsg.includes("404") ||
         errMsg.includes("400") ||
         errMsg.includes("billing") ||
         errMsg.includes("Unauthorized") ||
         errMsg.includes("invalid_api_key") ||
+        errMsg.includes("model_not_found") ||
         errMsg.includes("rate limit") ||
         errMsg.includes("Rate limit") ||
         errMsg.includes("insufficient_quota")
