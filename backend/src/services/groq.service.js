@@ -107,7 +107,7 @@ Rules:
     const cleanRaw = raw.replace(/```json|```/gi, "").trim();
     return JSON.parse(cleanRaw);
   } catch (err) {
-    console.error("Groq API error:", err);
-    throw new Error("Groq generation failed.");
+    console.error("Groq API error:", err.message || err);
+    throw err;
   }
 }

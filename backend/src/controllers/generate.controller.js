@@ -18,7 +18,23 @@ export const generatePresentation = async (req, res) => {
     try {
       presentation = await generateWithGroq(data);
     } catch (aiError) {
-      console.warn("Groq failed, using fake AI");
+      console.error("Groq API error:", aiError.message);
+      const errMsg = aiError.message;
+      if (
+        errMsg.includes("GROQ_API_KEY") ||
+        errMsg.includes("401") ||
+        errMsg.includes("403") ||
+        errMsg.includes("400") ||
+        errMsg.includes("billing") ||
+        errMsg.includes("Unauthorized") ||
+        errMsg.includes("invalid_api_key") ||
+        errMsg.includes("rate limit") ||
+        errMsg.includes("Rate limit") ||
+        errMsg.includes("insufficient_quota")
+      ) {
+        throw new Error(`Groq API failed: ${errMsg}`);
+      }
+      console.warn("Groq failed, using fallback generation");
       presentation = fakeAIGenerate(data);
     }
 

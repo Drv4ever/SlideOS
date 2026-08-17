@@ -91,7 +91,7 @@ describe("generateWithGroq", () => {
         textAmount: "detailed",
         theme: "cornflower",
       })
-    ).rejects.toThrow("Groq generation failed.");
+    ).rejects.toThrow("Groq API request failed: 401 Unauthorized");
   });
 
   test("should throw error when response has no content", async () => {
@@ -110,7 +110,7 @@ describe("generateWithGroq", () => {
         textAmount: "detailed",
         theme: "cornflower",
       })
-    ).rejects.toThrow("Groq generation failed.");
+    ).rejects.toThrow("Groq response did not include any content.");
   });
 
   test("should strip markdown code fences from response", async () => {
