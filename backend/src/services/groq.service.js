@@ -8,14 +8,25 @@ const FIELD_DEFINITIONS = `Field definitions:
   - "two-column" → For comparing two ideas. Two columns with sub-headings and bullets side by side.
   - "big-stat" → For a single key number/statistic or impactful claim. Large central number/text with supporting context.
   - "section-divider" → For major section transitions mid-deck. Minimal text over a full background image. Should NOT be used for first/last slides.
-  - "content-only" → For dense information slides. Clean heading + bullet points layout, no image needed. Use this when a slide doesn't have a strong visual concept.`;
+  - "content-only" → For dense information slides. Clean heading + bullet points layout, no image needed. Use this when a slide doesn't have a strong visual concept.
+  - "timeline" → For chronological sequences, history, or step-by-step processes. Vertical line with milestone cards.
+  - "stat-grid" → For slides with 3+ key metrics or numbers. 2x2 grid of big stats with labels.
+  - "comparison" → For comparing two options/approaches side by side with "Option A"/"Option B" headers.
+  - "agenda" → For a contents/overview/roadmap slide. Numbered section list.
+  - "quote" → For a testimonial, key quote, or single strong statement. The quotation goes in "heading"; the attribution goes in the first content item.
+  - "closing" → For the LAST slide only. Big centered thank-you / final message.`;
 
 const LAYOUT_RULES = `Layout assignment rules:
 - Slide 1 MUST use "title-slide"
 - If the slide content expresses a single strong statistic, use "big-stat"
-- If the slide compares two sides/approaches, use "two-column"
+- If the slide compares two sides/approaches, use "comparison" (or "two-column")
 - If it's a section transition (usually every 3-4 slides), use "section-divider"
 - If a clear visual keyword exists, prefer "bullets-image" over "content-only"
+- For chronological or sequential content, use "timeline"
+- For 3+ distinct metrics or numbers, use "stat-grid"
+- For a contents/agenda/roadmap overview slide, use "agenda"
+- For a single quote or testimonial, use "quote"
+- For the FINAL slide, use "closing"
 - Only use "content-only" when no good visual keyword exists`;
 
 export async function generateWithGroq({

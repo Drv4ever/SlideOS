@@ -71,6 +71,13 @@ describe("generateWithGroq", () => {
     expect(body.messages[0].content).toContain("layout");
     expect(body.messages[0].content).toContain("title-slide");
     expect(body.messages[0].content).toContain("bullets-image");
+    // Expanded layout set teaches the LLM the new designed layouts
+    expect(body.messages[0].content).toContain("timeline");
+    expect(body.messages[0].content).toContain("stat-grid");
+    expect(body.messages[0].content).toContain("comparison");
+    expect(body.messages[0].content).toContain("agenda");
+    expect(body.messages[0].content).toContain("quote");
+    expect(body.messages[0].content).toContain("closing");
 
     expect(result).toHaveProperty("title", "Test Title");
     expect(result.slides[0]).toHaveProperty("imageKeyword", "test image");

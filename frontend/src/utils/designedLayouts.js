@@ -130,6 +130,12 @@ export function computeSlideLayout(slideData, theme, meta) {
     "section-divider": () => sectionDivider(roles, theme, background),
     "big-stat": () => bigStat(roles, theme, background),
     "two-column": () => twoColumn(roles, theme, background),
+    comparison: () => comparison(roles, theme, background),
+    timeline: () => timeline(roles, theme, background),
+    "stat-grid": () => statGrid(roles, theme, background),
+    agenda: () => agenda(roles, theme, background),
+    quote: () => quote(roles, theme, background),
+    closing: () => closing(roles, theme, background),
     modern: () => modern(roles, theme, background),
     "content-only": () => contentOnly(roles, theme, background),
   };
@@ -447,8 +453,20 @@ function wrap(roles, layout, name, theme, meta) {
 // ------------------------------------------------------------ decorative layer
 
 // Layouts that carry the decorative layer. Title/section-divider slides are
-// already image-heavy, so they stay minimal.
-const DECOR_ELIGIBLE = new Set(["content-only", "modern", "two-column", "big-stat"]);
+// already image-heavy, so they stay minimal. Quote/closing skip the icon chip
+// (it would collide with the big text block) and closing/quote skip the divider.
+const DECOR_OPTIONS = {
+  "content-only": { chip: true, divider: true },
+  modern: { chip: true, divider: true },
+  "two-column": { chip: true, divider: true },
+  "big-stat": { chip: true, divider: true },
+  "stat-grid": { chip: true, divider: true },
+  comparison: { chip: true, divider: false },
+  agenda: { chip: true, divider: true },
+  timeline: { chip: false, divider: true },
+  quote: { chip: false, divider: false },
+  closing: { chip: false, divider: false },
+};
 
 // Keyword -> lucide icon name, derived deterministically from the slide's own
 // content so the same slide always renders the same icon (one source of truth,
@@ -483,12 +501,16 @@ const DECOR_DIVIDER_Y = {
   modern: 1.33,
   "two-column": 1.38,
   "big-stat": 2.85,
+  "stat-grid": 1.38,
+  agenda: 1.38,
+  timeline: 1.38,
 };
 
 // Decor positions are PPTX-native inches/pt, matching every other block the
 // design engine emits, so web and PowerPoint stay pixel-consistent.
 function buildDecor(roles, theme, meta, layoutName) {
-  if (!DECOR_ELIGIBLE.has(layoutName)) return null;
+  const opts = DECOR_OPTIONS[layoutName];
+  if (!opts) return null;
   const accent = normalizeHex(theme.primary || "F97316");
   const numeral = String(meta.index + 1).padStart(2, "0");
   const chip = {
@@ -500,7 +522,7 @@ function buildDecor(roles, theme, meta, layoutName) {
     border: theme.border || "E8E8F0",
   };
 
-  return {
+  const decor = {
     shapes: [
       {
         type: "ellipse",
@@ -522,19 +544,27 @@ function buildDecor(roles, theme, meta, layoutName) {
       color: accent,
       opacity: 0.06,
     },
-    divider: {
+  };
+
+  if (opts.divider) {
+    decor.divider = {
       x: MARGIN_LEFT,
       y: DECOR_DIVIDER_Y[layoutName],
       w: 1.4,
       h: 0.025,
       color: accent,
-    },
-    icon: {
+    };
+  }
+
+  if (opts.chip) {
+    decor.icon = {
       name: pickIconForRoles(roles),
       color: accent,
       chip,
-    },
-  };
+    };
+  }
+
+  return decor;
 }
 
 function imageBlock(roles) {
@@ -699,30 +729,262 @@ function bigStat(roles, theme, background) {
   };
 }
 
-function twoColumn(roles, theme, background) {
-  const mid = Math.ceil(roles.bullets.length / 2);
-  const left = roles.bullets.slice(0, mid);
-  const right = roles.bullets.slice(mid);
-  const colW = FULL_W / 2 - 0.15; // 4.25
-  const gap = 0.3;
-
-  const col = (items, x) => ({
+function columnDef(items, x, colW, theme, opts = {}) {
+  return {
     x,
-    y: 1.5,
+    y: opts.y || 1.5,
     w: colW,
-    h: SLIDE_H - 1.7,
+    h: SLIDE_H - (opts.y || 1.5) - 0.2,
+    ...(opts.title
+      ? { title: opts.title, titleColor: opts.titleColor, titleSize: opts.titleSize }
+      : {}),
     bullets: items.map((b) => ({
       text: b,
       size: 17,
       font: theme.bodyFont,
       color: theme.text,
     })),
+  };
+}
+
+function twoColumn(roles, theme, background) {
+  const mid = Math.ceil(roles.bullets.length / 2);
+  const colW = FULL_W / 2 - 0.15; // 4.25
+  const gap = 0.3;
+
+  return {
+    background,
+    texts: [headingText(roles.heading, 32, MARGIN_TOP, FULL_W, theme.text, theme.headingFont)],
+    columns: [
+      columnDef(roles.bullets.slice(0, mid), MARGIN_LEFT, colW, theme),
+      columnDef(roles.bullets.slice(mid), MARGIN_LEFT + colW + gap, colW, theme),
+    ],
+    image: null,
+    overlay: null,
+  };
+}
+
+// "Option A vs Option B" — two columns with sub-headers derived from the split.
+function comparison(roles, theme, background) {
+  const mid = Math.ceil(roles.bullets.length / 2);
+  const colW = FULL_W / 2 - 0.15;
+  const gap = 0.3;
+
+  return {
+    background,
+    texts: [headingText(roles.heading, 32, MARGIN_TOP, FULL_W, theme.text, theme.headingFont)],
+    columns: [
+      columnDef(roles.bullets.slice(0, mid), MARGIN_LEFT, colW, theme, {
+        title: roles.leftTitle || "Option A",
+        y: 1.9,
+        titleColor: theme.accent,
+        titleSize: 18,
+      }),
+      columnDef(roles.bullets.slice(mid), MARGIN_LEFT + colW + gap, colW, theme, {
+        title: roles.rightTitle || "Option B",
+        y: 1.9,
+        titleColor: theme.accent,
+        titleSize: 18,
+      }),
+    ],
+    image: null,
+    overlay: null,
+  };
+}
+
+// Vertical timeline: accent line + milestone dots with compact cards to the
+// right. Every bullet is a milestone (capped), so LLM/template/remix content
+// maps 1:1 to cards.
+function timeline(roles, theme, background) {
+  const items = roles.bullets.slice(0, 5);
+  const cardH = 0.62;
+  const gap = 0.08;
+  const startY = 1.55;
+
+  const cards = items.map((item, i) => {
+    const parts = String(item).split("\n");
+    return {
+      x: 1.6,
+      y: startY + i * (cardH + gap),
+      w: FULL_W - 1.1,
+      h: cardH,
+      title: parts[0] || item.slice(0, 40),
+      body: parts.slice(1).join("\n"),
+      fill: CARD_FILL,
+      border: CARD_BORDER,
+    };
+  });
+
+  const lineColor = theme.accent || theme.primary;
+  return {
+    background,
+    texts: [headingText(roles.heading, 32, MARGIN_TOP, FULL_W, theme.text, theme.headingFont)],
+    cards,
+    timeline: cards.length
+      ? {
+          x: 1.3,
+          dots: cards.map((_, i) => startY + i * (cardH + gap) + cardH / 2),
+          yTop: startY - 0.15,
+          yBottom: cards[cards.length - 1].y + cardH / 2 + 0.15,
+          color: lineColor,
+          dotColor: lineColor,
+        }
+      : null,
+    image: null,
+    overlay: null,
+  };
+}
+
+// 2x2 grid of big numbers + labels. bullets[0] optional intro; bullets[1..]
+// are stats (capped at 4), each "Number\nLabel" or just the number.
+function statGrid(roles, theme, background) {
+  const stats = roles.bullets.slice(0, 4);
+  const gap = 0.3;
+  const w = (FULL_W - gap) / 2;
+  const x0 = MARGIN_LEFT;
+  const x1 = MARGIN_LEFT + w + gap;
+  const y0 = 1.55;
+  const rowH = 1.6;
+
+  const cards = stats.map((item, i) => {
+    const parts = String(item).split("\n");
+    return {
+      x: i % 2 === 0 ? x0 : x1,
+      y: i < 2 ? y0 : y0 + rowH + 0.15,
+      w,
+      h: rowH,
+      title: parts[0] || item.slice(0, 24),
+      body: parts.slice(1).join("\n"),
+      titleSize: 30,
+      titleColor: theme.accent,
+      fill: CARD_FILL,
+      border: CARD_BORDER,
+    };
   });
 
   return {
     background,
     texts: [headingText(roles.heading, 32, MARGIN_TOP, FULL_W, theme.text, theme.headingFont)],
-    columns: [col(left, MARGIN_LEFT), col(right, MARGIN_LEFT + colW + gap)],
+    cards,
+    image: null,
+    overlay: null,
+  };
+}
+
+// Agenda / table of contents: numbered section cards with corner tags.
+function agenda(roles, theme, background) {
+  const items = roles.bullets.slice(0, 5);
+  const cardH = 0.62;
+  const gap = 0.1;
+  const startY = 1.55;
+
+  const cards = items.map((item, i) => {
+    const parts = String(item).split("\n");
+    return {
+      x: MARGIN_LEFT,
+      y: startY + i * (cardH + gap),
+      w: FULL_W,
+      h: cardH,
+      title: parts[0] || item.slice(0, 40),
+      body: parts.slice(1).join("\n"),
+      tag: String(i + 1).padStart(2, "0"),
+      tagFill: theme.accent || theme.primary,
+      fill: CARD_FILL,
+      border: CARD_BORDER,
+    };
+  });
+
+  return {
+    background,
+    texts: [headingText(roles.heading, 32, MARGIN_TOP, FULL_W, theme.text, theme.headingFont)],
+    cards,
+    image: null,
+    overlay: null,
+  };
+}
+
+// Pull quote: the quotation is the slide heading, the attribution is the first
+// bullet — both map to existing edit roles (texts[0] -> heading, texts[1] ->
+// bullet 0), so inline editing keeps working.
+function quote(roles, theme, background) {
+  const quoteText = roles.heading || "…";
+  const attribution = roles.bullets[0] || roles.subtitle || "";
+
+  return {
+    background,
+    texts: [
+      {
+        text: quoteText,
+        x: MARGIN_LEFT + 0.5,
+        y: 1.6,
+        w: FULL_W - 1.0,
+        h: 2.4,
+        size: 30,
+        font: theme.headingFont,
+        bold: false,
+        color: theme.text,
+        align: "left",
+        valign: "top",
+      },
+      ...(attribution
+        ? [
+            {
+              text: `— ${attribution}`,
+              x: MARGIN_LEFT + 0.5,
+              y: 4.1,
+              w: FULL_W - 1.0,
+              h: 0.6,
+              size: 16,
+              font: theme.bodyFont,
+              bold: true,
+              color: theme.accent,
+              align: "left",
+              valign: "top",
+            },
+          ]
+        : []),
+    ],
+    image: null,
+    overlay: null,
+  };
+}
+
+// Closing slide: big centered final message + subtitle, over the decor layer.
+function closing(roles, theme, background) {
+  return {
+    background,
+    texts: [
+      {
+        text: roles.heading || "Thank you",
+        x: MARGIN_LEFT,
+        y: 1.7,
+        w: FULL_W,
+        h: 1.6,
+        size: 42,
+        font: theme.headingFont,
+        bold: true,
+        color: theme.text,
+        align: "center",
+        valign: "top",
+      },
+      ...(roles.subtitle || roles.bullets[0]
+        ? [
+            {
+              text: roles.subtitle || roles.bullets[0],
+              x: MARGIN_LEFT,
+              y: 3.6,
+              w: FULL_W,
+              h: 0.8,
+              size: 20,
+              font: theme.bodyFont,
+              bold: false,
+              color: theme.textMuted,
+              align: "center",
+              valign: "top",
+            },
+          ]
+        : []),
+    ],
     image: null,
     overlay: null,
   };

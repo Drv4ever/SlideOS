@@ -236,16 +236,39 @@ export function SlideStage({ desc, animating, accentFont, bodyFont }) {
             height: `${pctH(c.h)}%`,
             background: "#F8F9FA",
             borderColor: "#E8E8F0",
-            padding: `${pctH(0.12)}% ${pctW(0.18)}%`,
+            paddingTop: `${pctH(0.12)}%`,
+            paddingBottom: `${pctH(0.12)}%`,
+            paddingRight: `${pctW(0.18)}%`,
+            paddingLeft: `${pctW(c.tag ? 0.62 : 0.18)}%`,
             ...anim(i),
           }}
         >
+          {/* Corner number badge (agenda sections) */}
+          {c.tag && (
+            <div
+              data-decor="card-tag"
+              className="absolute flex items-center justify-center rounded-md pointer-events-none"
+              style={{
+                left: `${pctW(0.14)}%`,
+                top: `${pctH(0.14)}%`,
+                width: `${pctW(0.38)}%`,
+                height: `${pctH(0.38)}%`,
+                background: c.tagFill || "#111827",
+                color: "#ffffff",
+                fontSize: pt(c.tagSize || 11),
+                fontWeight: 700,
+                lineHeight: 1,
+              }}
+            >
+              {c.tag}
+            </div>
+          )}
           <div
             style={{
               fontSize: pt(c.titleSize || 15),
               fontWeight: 700,
               fontFamily: `${accentFont}, sans-serif`,
-              color: "#111827",
+              color: c.titleColor || "#111827",
               lineHeight: 1.1,
             }}
           >
@@ -268,6 +291,40 @@ export function SlideStage({ desc, animating, accentFont, bodyFont }) {
           )}
         </div>
       ))}
+
+      {/* Timeline: vertical line + milestone dots behind the cards */}
+      {desc.timeline && (
+        <>
+          <div
+            data-decor="timeline-line"
+            className="absolute pointer-events-none rounded-full"
+            style={{
+              left: `${pctX(desc.timeline.x - 0.015)}%`,
+              top: `${pctY(desc.timeline.yTop)}%`,
+              width: `${pctW(0.03)}%`,
+              height: `${pctY(desc.timeline.yBottom - desc.timeline.yTop)}%`,
+              background: desc.timeline.color,
+              opacity: 0.35,
+            }}
+          />
+          {(desc.timeline.dots || []).map((dy, i) => (
+            <div
+              key={`tl-dot-${i}`}
+              data-decor="timeline-dot"
+              className="absolute rounded-full pointer-events-none"
+              style={{
+                left: `${pctX(desc.timeline.x - 0.045)}%`,
+                top: `${pctY(dy - 0.045)}%`,
+                width: `${pctW(0.09)}%`,
+                height: `${pctH(0.09)}%`,
+                background: desc.timeline.dotColor,
+                border: "2px solid #ffffff",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.25)",
+              }}
+            />
+          ))}
+        </>
+      )}
 
       {/* Bullet lists (content-only) */}
       {desc.bullets?.map((b, i) => (
@@ -294,8 +351,27 @@ export function SlideStage({ desc, animating, accentFont, bodyFont }) {
       ))}
 
       {/* Two-column bullet lists */}
-      {desc.columns?.map((col, ci) =>
-        (col.bullets || []).map((item, i) => (
+      {desc.columns?.map((col, ci) => (
+        <>
+          {col.title && (
+            <div
+              className="absolute"
+              style={{
+                left: `${pctX(col.x)}%`,
+                top: `${pctY(col.y - 0.5)}%`,
+                width: `${pctW(col.w)}%`,
+                height: `${pctH(0.4)}%`,
+                fontSize: pt(col.titleSize || 18),
+                fontWeight: 700,
+                fontFamily: `${accentFont}, sans-serif`,
+                color: col.titleColor || "#111827",
+                lineHeight: 1.1,
+              }}
+            >
+              {col.title}
+            </div>
+          )}
+          {(col.bullets || []).map((item, i) => (
           <div
             key={`col-${ci}-${i}`}
             className="absolute"
@@ -316,8 +392,9 @@ export function SlideStage({ desc, animating, accentFont, bodyFont }) {
             <span className="mr-2">•</span>
             {item.text}
           </div>
-        ))
-      )}
+          ))}
+        </>
+      ))}
 
       {/* Footer (matches PPTX master) */}
       {desc.footer && (

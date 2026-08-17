@@ -58,3 +58,52 @@ describe("SlideStage decor rendering", () => {
     expect(divider).toBeTruthy();
   });
 });
+
+describe("SlideStage new layout primitives", () => {
+  const wrap = (desc) =>
+    render(
+      <div style={{ width: 800, containerType: "inline-size", aspectRatio: "16 / 9" }}>
+        <SlideStage
+          desc={desc}
+          animating={false}
+          accentFont={theme.headingFont}
+          bodyFont={theme.bodyFont}
+        />
+      </div>
+    );
+
+  it("renders the timeline line and one dot per milestone", () => {
+    const desc = computeSlideLayout(
+      { id: "s", heading: "Roadmap", content: ["Q1", "Q2", "Q3"], layout: "timeline" },
+      theme,
+      { index: 0, total: 1 }
+    );
+    const { container } = wrap(desc);
+    expect(container.querySelector("[data-decor='timeline-line']")).toBeTruthy();
+    expect(container.querySelectorAll("[data-decor='timeline-dot']").length).toBe(3);
+  });
+
+  it("renders numbered card tags for the agenda layout", () => {
+    const desc = computeSlideLayout(
+      { id: "s", heading: "Agenda", content: ["One", "Two", "Three"], layout: "agenda" },
+      theme,
+      { index: 0, total: 1 }
+    );
+    const { container } = wrap(desc);
+    expect(container.querySelectorAll("[data-decor='card-tag']").length).toBe(3);
+    expect(container.querySelector("[data-decor='card-tag']").textContent).toBe("01");
+  });
+
+  it("renders stat-grid numbers in the accent color", () => {
+    const desc = computeSlideLayout(
+      { id: "s", heading: "Metrics", content: ["120% growth", "4.9 rating"], layout: "stat-grid" },
+      theme,
+      { index: 0, total: 1 }
+    );
+    const { container } = wrap(desc);
+    const accentTitle = [...container.querySelectorAll("div")].find(
+      (d) => d.style.color === theme.accent && d.style.fontWeight === "700"
+    );
+    expect(accentTitle).toBeTruthy();
+  });
+});

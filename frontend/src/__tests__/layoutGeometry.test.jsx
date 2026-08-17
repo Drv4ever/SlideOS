@@ -339,6 +339,18 @@ describe("PPTX export path (shrink-to-fit + no overlap)", () => {
       "Column B first point also reasonably long to wrap",
       "B2", "B3",
     ])],
+    ["stat-grid", makeSlide("stat-grid", "Key Metrics", [
+      "120% revenue growth",
+      "4.9 customer rating",
+      "2x operational efficiency",
+      "300+ enterprise customers",
+    ])],
+    ["comparison", makeSlide("comparison", "Two Paths", [
+      "Option A first point that wraps a little",
+      "A2", "A3",
+      "Option B first point that also wraps",
+      "B2", "B3",
+    ])],
   ];
 
   cases.forEach(([name, slide]) => {

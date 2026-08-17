@@ -113,7 +113,10 @@ export default function DesignCanvas({
     if (block.kind === "card") {
       const { title, body } = cardParts(block.index);
       return (
-        <div className="w-full h-full flex flex-col">
+        <div
+          className="w-full h-full flex flex-col"
+          style={{ paddingLeft: block.box.tag ? inToPx(0.5, "x") : 0 }}
+        >
           <div
             contentEditable
             suppressContentEditableWarning
@@ -123,7 +126,7 @@ export default function DesignCanvas({
               fontSize: (block.box.titleSize || 15) * PX_PER_PT,
               fontWeight: 700,
               fontFamily: `${headingFont}, sans-serif`,
-              color: "#111827",
+              color: block.box.titleColor || "#111827",
               lineHeight: 1.1,
             }}
             onBlur={(e) => commitEdit(block, `${e.target.innerText}${body ? `\n${body}` : ""}`)}

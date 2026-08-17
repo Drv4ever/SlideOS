@@ -9,6 +9,12 @@ const VALID_LAYOUTS = [
   "two-column",
   "modern",
   "content-only",
+  "timeline",
+  "stat-grid",
+  "comparison",
+  "agenda",
+  "quote",
+  "closing",
 ];
 
 const VALID_TEXT_AMOUNTS = ["minimal", "concise", "detailed", "extensive"];

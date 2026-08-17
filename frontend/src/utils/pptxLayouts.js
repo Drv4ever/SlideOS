@@ -286,6 +286,28 @@ export async function exportSlideWithElements(slide, slideData, themeColors, bod
   // 1b) Decorative background layer (watermark, blob, divider — behind content)
   await exportDecor(slide, desc, theme);
 
+  // 1c) Timeline (vertical line + milestone dots, behind the cards)
+  if (desc.timeline) {
+    const tl = desc.timeline;
+    slide.addShape("line", {
+      x: tl.x,
+      y: tl.yTop,
+      w: 0,
+      h: tl.yBottom - tl.yTop,
+      line: { color: normalizeHex(tl.color) + "59", width: 2.5 },
+    });
+    for (const dy of tl.dots || []) {
+      slide.addShape("ellipse", {
+        x: tl.x - 0.045,
+        y: dy - 0.045,
+        w: 0.09,
+        h: 0.09,
+        fill: { color: normalizeHex(tl.dotColor) },
+        line: { color: "FFFFFF", width: 1.5 },
+      });
+    }
+  }
+
   // 2) Cover image (full-bleed or right panel)
   if (desc.image && desc.image.src) {
     const boxW = Math.round(desc.image.w * 96);
@@ -344,25 +366,49 @@ export async function exportSlideWithElements(slide, slideData, themeColors, bod
       line: { color: normalizeHex(c.border || "E8E8F0"), width: 0.5 },
       rectRadius: 0.08,
     });
+    const titleX = c.x + (c.tag ? 0.62 : 0.18);
+    const titleW = c.w - (c.tag ? 0.8 : 0.36);
+    if (c.tag) {
+      slide.addShape("roundRect", {
+        x: c.x + 0.14,
+        y: c.y + 0.14,
+        w: 0.38,
+        h: 0.38,
+        fill: { color: normalizeHex(c.tagFill || "111827") },
+        line: { type: "none", color: "FFFFFF00" },
+        rectRadius: 0.08,
+      });
+      slide.addText(String(c.tag), {
+        x: c.x + 0.14,
+        y: c.y + 0.14,
+        w: 0.38,
+        h: 0.38,
+        fontSize: c.tagSize || 11,
+        bold: true,
+        color: "FFFFFF",
+        align: "center",
+        valign: "ctr",
+      });
+    }
     if (c.title) {
       slide.addText(String(c.title), {
-        x: c.x + 0.18,
+        x: titleX,
         y: c.y + 0.12,
-        w: c.w - 0.36,
+        w: titleW,
         h: 0.34,
         fontFace: theme.headingFont,
         fontSize: c.titleSize || 15,
         bold: true,
-        color: theme.text,
+        color: normalizeHex(c.titleColor || theme.text),
         valign: "top",
         fit: "shrink",
       });
     }
     if (c.body) {
       slide.addText(String(c.body), {
-        x: c.x + 0.18,
+        x: titleX,
         y: c.y + 0.46,
-        w: c.w - 0.36,
+        w: titleW,
         h: c.h - 0.58,
         fontSize: c.bodySize || 11,
         color: normalizeHex("3A3A3A"),
@@ -391,6 +437,20 @@ export async function exportSlideWithElements(slide, slideData, themeColors, bod
 
   // 7) Two-column bullets
   for (const col of desc.columns || []) {
+    if (col.title) {
+      slide.addText(String(col.title), {
+        x: col.x,
+        y: col.y - 0.5,
+        w: col.w,
+        h: 0.4,
+        fontSize: col.titleSize || 18,
+        bold: true,
+        color: normalizeHex(col.titleColor || theme.text),
+        fontFace: theme.headingFont,
+        valign: "top",
+        fit: "shrink",
+      });
+    }
     let yCursor = col.y;
     for (const item of col.bullets || []) {
       slide.addText(String(item.text), {

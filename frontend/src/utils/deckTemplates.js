@@ -12,6 +12,12 @@ const layout = {
   columns: "two-column",
   cards: "modern",
   content: "content-only",
+  timeline: "timeline",
+  statgrid: "stat-grid",
+  comparison: "comparison",
+  agenda: "agenda",
+  quote: "quote",
+  closing: "closing",
 };
 
 export const DECK_TEMPLATES = [
@@ -30,9 +36,9 @@ export const DECK_TEMPLATES = [
       { heading: "The Problem", content: ["Teams lose weeks coordinating releases", "Tooling is fragmented and manual", "The cost of context switching is compounding"], layout: layout.content },
       { heading: "Our Solution", content: ["One platform, end to end", "Automation replaces busywork", "Built for teams that move fast"], layout: layout.cards },
       { heading: "Market Opportunity", content: ["$40B addressable market", "3x growth in adjacent spend", "Clear path to category leadership"], layout: layout.stat, imageKeyword: "growing market chart" },
-      { heading: "Traction & Roadmap", content: ["120% QoQ revenue growth", "Enterprise design partners onboard", "Two flagship launches next year"], layout: layout.columns },
+      { heading: "Traction & Roadmap", content: ["120% QoQ revenue growth", "Enterprise design partners onboard", "Two flagship launches next year"], layout: layout.timeline, imageKeyword: "growth roadmap" },
       { heading: "Why Now", content: ["The shift to AI-native workflows", "Customers asking for this daily", "First-mover advantage is real"], layout: layout.divider, imageKeyword: "future technology horizon" },
-      { heading: "The Ask", content: ["Raising a $5M seed round", "Deploying capital into product & go-to-market", "Join us in shaping the future"], layout: layout.content },
+      { heading: "The Ask", content: ["Raising a $5M seed round", "Deploying capital into product & go-to-market", "Join us in shaping the future"], layout: layout.closing },
     ],
   },
   {
@@ -65,10 +71,11 @@ export const DECK_TEMPLATES = [
     audience: "students",
     slides: [
       { heading: "Mastering the fundamentals", content: ["Workshop objectives and what you will learn"], layout: layout.title, imageKeyword: "students in classroom" },
+      { heading: "What We'll Cover", content: ["Core concepts explained simply", "Hands-on guided practice", "Common pitfalls to avoid", "Applying it to real work"], layout: layout.agenda },
       { heading: "Lesson Objectives", content: ["Understand the core concepts", "Apply techniques to real examples", "Practice with guided exercises"], layout: layout.content },
       { heading: "Core Concept 1", content: ["The principle explained simply", "Why it matters in practice", "Common pitfalls to avoid"], layout: layout.cards },
       { heading: "Guided Practice", content: ["Work through the worked example", "Compare your approach", "Ask questions as we go"], layout: layout.columns },
-      { heading: "Key Takeaway", content: ["Mastery comes from deliberate practice"], layout: layout.stat, imageKeyword: "learning progress concept" },
+      { heading: "Mastery comes from deliberate practice", content: ["Your Instructor"], layout: layout.quote },
       { heading: "Next Steps", content: ["Complete the homework assignment", "Join next week's session", "Review the reading list"], layout: layout.content },
     ],
   },
@@ -122,8 +129,9 @@ export const DECK_TEMPLATES = [
     slides: [
       { heading: "Research report: key findings", content: ["What we studied and why it matters"], layout: layout.title, imageKeyword: "research laboratory analysis" },
       { heading: "Methodology", content: ["Sample size and demographics", "Data collection approach", "Analysis and validation"], layout: layout.content },
+      { heading: "Study Timeline", content: ["Kickoff and planning", "Data collection phase", "Analysis and validation", "Peer review and publication"], layout: layout.timeline },
       { heading: "Headline Finding", content: ["The single most important result", "Magnitude and significance", "What surprised us most"], layout: layout.stat, imageKeyword: "data insight highlight" },
-      { heading: "Supporting Evidence", content: ["Finding 1 with data", "Finding 2 with data", "Finding 3 with data"], layout: layout.cards },
+      { heading: "Supporting Evidence", content: ["Finding 1: measured uplift", "Finding 2: consistent across cohorts", "Finding 3: stable over time"], layout: layout.statgrid },
       { heading: "Limitations", content: ["Sample constraints", "Confounding factors", "Opportunities for follow-up"], layout: layout.columns },
       { heading: "Recommendations", content: ["Act on the headline finding first", "Investigate the open questions", "Track progress against baselines"], layout: layout.content },
     ],
