@@ -202,7 +202,7 @@ export function AppSidebar({ onLogout }) {
           />
         </div>
 
-        <SidebarSeparator />
+        <SidebarSeparator className="mx-0" />
 
         {/* Navigation */}
         <SidebarGroup className="bg-sidebar-accent/50 rounded-xl px-0 mx-0 w-auto group-data-[collapsible=icon]:px-2">
@@ -235,7 +235,7 @@ export function AppSidebar({ onLogout }) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarSeparator />
+        <SidebarSeparator className="mx-0" />
 
         {/* Preset Engines */}
         <SidebarGroup className="bg-sidebar-accent/50 rounded-xl px-0 mx-0 w-auto group-data-[collapsible=icon]:px-2">
@@ -276,7 +276,7 @@ export function AppSidebar({ onLogout }) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarSeparator className="group-data-[collapsible=icon]:hidden" />
+        <SidebarSeparator className="mx-0 group-data-[collapsible=icon]:hidden" />
 
         {/* Recent Decks */}
         <SidebarGroup className="bg-sidebar-accent/50 rounded-xl px-0 mx-0 w-auto group-data-[collapsible=icon]:hidden">

@@ -261,8 +261,8 @@ export default function PresentationPreview() {
 
                {/* Layout Badge */}
                {slide.layout && (
-                 <div className="shrink-0 flex items-center self-start mt-3">
-                   <span className="text-[9px] font-bold px-2 py-1 bg-muted/50 text-muted-foreground rounded-lg border border-border">
+                 <div className="shrink-0 flex items-center">
+                   <span className="text-[9px] font-bold px-2 py-1 bg-muted/50 text-muted-foreground rounded-lg border border-border whitespace-nowrap">
                      {slide.layout.replace(/-/g, " ")}
                    </span>
                  </div>
