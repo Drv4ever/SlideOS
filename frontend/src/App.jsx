@@ -1,14 +1,19 @@
 import { Header } from './components/Header.jsx';
-import { PresentationGenerator } from './components/PresentationGenerator.jsx';
 import { Footer } from './components/Footer.jsx';
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { Routes, Route, useLocation } from "react-router-dom";
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
-import PresentationPreview from './pages/PresentationPreview.jsx';
-import PresentationView from './pages/PresentationView.jsx';
 import { AuthForm } from './components/AuthForm.jsx';
-import MyPresentations from './pages/MyPresentations.jsx';
-import LandingPage from './pages/LandingPage.jsx';
+
+const PresentationGenerator = lazy(() =>
+  import('./components/PresentationGenerator.jsx').then((m) => ({
+    default: m.PresentationGenerator,
+  }))
+);
+const PresentationPreview = lazy(() => import('./pages/PresentationPreview.jsx'));
+const PresentationView = lazy(() => import('./pages/PresentationView.jsx'));
+const MyPresentations = lazy(() => import('./pages/MyPresentations.jsx'));
+const LandingPage = lazy(() => import('./pages/LandingPage.jsx'));
 
 function getStoredToken() {
   const token = localStorage.getItem("token");
@@ -37,6 +42,10 @@ function getStoredToken() {
 
 import { SidebarProvider, SidebarTrigger } from './components/ui/sidebar.jsx';
 import { AppSidebar } from './components/AppSidebar.jsx';
+import { themes } from './utils/themes';
+
+const DEFAULT_THEME =
+  themes.find((t) => t.id === 'cornflower') || themes[0];
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(
@@ -47,15 +56,24 @@ export default function App() {
   const isPresentationRoute = location.pathname.includes("presentation-view");
 
   const [presentationTheme, setPresentationTheme] = useState({
-    name: 'Dalibio',
-    fontFamily: {
-      heading: 'Poppins',
-      body: 'Source Sans Pro'
+    name: DEFAULT_THEME?.name || 'Cornflower Blue',
+    colors: DEFAULT_THEME?.colors || {},
+    fontFamily: DEFAULT_THEME?.fontFamily || {
+      heading: 'Space Grotesk',
+      body: 'DM Sans'
     }
   });
 
   const handleAuthSuccess = () => {
     setIsAuthenticated(true);
+  };
+
+  const handleThemeChange = (nextTheme) => {
+    setPresentationTheme({
+      name: nextTheme?.name || presentationTheme.name,
+      colors: nextTheme?.colors || presentationTheme.colors,
+      fontFamily: nextTheme?.fontFamily || nextTheme?.fonts || presentationTheme.fontFamily,
+    });
   };
 
   const handleLogout = () => {
@@ -65,13 +83,20 @@ export default function App() {
   };
 
   const mainContent = (
-    <Routes>
+    <Suspense
+      fallback={
+        <div className="flex-1 flex items-center justify-center min-h-[40vh]">
+          <div className="w-8 h-8 rounded-full border-2 border-border border-t-orange-500 animate-spin" />
+        </div>
+      }
+    >
+      <Routes>
       <Route 
         path="/" 
         element={
           isAuthenticated ? (
             <PresentationGenerator 
-              onThemeChange={setPresentationTheme} 
+              onThemeChange={handleThemeChange} 
             />
           ) : (
             <LandingPage
@@ -84,12 +109,30 @@ export default function App() {
 
       <Route 
         path="/preview" 
-        element={<PresentationPreview />} 
+        element={
+          isAuthenticated ? (
+            <PresentationPreview />
+          ) : (
+            <AuthForm
+              onAuthSuccess={handleAuthSuccess}
+              theme={presentationTheme}
+            />
+          )
+        }
       />
 
       <Route 
         path="presentation-view" 
-        element={<PresentationView/>}
+        element={
+          isAuthenticated ? (
+            <PresentationView/>
+          ) : (
+            <AuthForm
+              onAuthSuccess={handleAuthSuccess}
+              theme={presentationTheme}
+            />
+          )
+        }
       />
 
       <Route
@@ -106,6 +149,7 @@ export default function App() {
         }
       />
     </Routes>
+    </Suspense>
   );
 
   // Presentation route is fullscreen

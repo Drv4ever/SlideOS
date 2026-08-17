@@ -1,39 +1,25 @@
-// Canvas dimensions: 1100 x 618 (16:9)
-// PPTX dimensions: 10 x 7.5 inches (pptxgenjs default)
-// All coordinates in inches for PPTX output
+// PPTX renderer.
+// Consumes the design description from designedLayouts.computeSlideLayout and
+// emits pptxgenjs calls using the SAME inch/point units, so the exported
+// PowerPoint file (10 x 5.625 in, LAYOUT_16x9) matches the SlideOS
+// Presentation View that renders the same description as HTML.
+//
+// Every text frame is top-aligned (valign: "top") because PowerPoint defaults
+// to vertically CENTERING text — oversized boxes used to push glyphs down onto
+// the element beneath them, which looked like duplicated/overlapping text.
+
+import {
+  computeSlideLayout,
+  SLIDE_W,
+  SLIDE_H,
+  normalizeHex,
+  interpolateColor,
+} from "./designedLayouts";
 
 export const PPT_STYLE = "MODERN";
 
-const SLIDE_W = 10;
-const SLIDE_H = 7.5;
-const MARGIN_LEFT = 0.5;
-const MARGIN_TOP = 0.4;
-
-export function extractSlideContent(slideData) {
-  const texts = (slideData.elements || []).filter((e) => e.type === "text");
-  const images = (slideData.elements || []).filter(
-    (e) => e.type === "image" && e.zIndex !== 0
-  );
-  const bgImages = (slideData.elements || []).filter(
-    (e) => e.type === "image" && e.zIndex === 0
-  );
-
-  return {
-    heading:
-      texts.find((e) => e.bold)?.content ||
-      texts[0]?.content ||
-      slideData.heading ||
-      "Untitled",
-    bullets: texts
-      .filter((e) => !e.bold)
-      .map((e) => e.content)
-      .filter(Boolean),
-    images,
-    bgImages,
-    layoutPattern: slideData.layoutPattern || slideData.layout || "content-only",
-    background: slideData.background || null,
-  };
-}
+const BRAND = "SlideOS";
+const FOOTER_Y = 5.28; // inches (slide is 5.625 tall)
 
 export function defineMaster(pres, themeColors) {
   pres.defineSlideMaster({
@@ -45,18 +31,18 @@ export function defineMaster(pres, themeColors) {
           x: 0,
           y: 0,
           w: "100%",
-          h: 0.12,
+          h: 0.14,
           fill: { color: themeColors.primary || "6366F1" },
         },
       },
       {
         text: {
-          text: "SlideOS",
+          text: BRAND,
           options: {
-            x: 0.3,
-            y: 7.15,
-            w: 9,
-            h: 0.3,
+            x: 0.55,
+            y: FOOTER_Y,
+            w: 3,
+            h: 0.26,
             fontSize: 10,
             color: "94A3B8",
             fontFace: "Georgia",
@@ -67,10 +53,10 @@ export function defineMaster(pres, themeColors) {
         text: {
           text: "Slide {SLIDE_NUMBER} of {NUM_SLIDES}",
           options: {
-            x: 8.8,
-            y: 7.15,
+            x: 8.6,
+            y: FOOTER_Y,
             w: 1,
-            h: 0.3,
+            h: 0.26,
             fontSize: 10,
             color: "94A3B8",
             fontFace: "Georgia",
@@ -82,278 +68,197 @@ export function defineMaster(pres, themeColors) {
   });
 }
 
-function addCard(slide, { x, y, w, h, title, body }) {
-  slide.addShape("roundRect", {
-    x,
-    y,
-    w,
-    h,
-    fill: { color: "FFFFFF00" },
-    line: { color: "FFFFFF00" },
-    rectRadius: 0.08,
-  });
-  slide.addText(title, {
-    x: x + 0.2,
-    y: y + 0.15,
-    w: w - 0.4,
-    h: 0.4,
-    fontFace: "Georgia",
-    fontSize: 16,
-    bold: true,
-    color: "1A1A1A",
-  });
-  slide.addText(body, {
-    x: x + 0.2,
-    y: y + 0.55,
-    w: w - 0.4,
-    h: h - 0.7,
-    fontSize: 12,
-    color: "3A3A3A",
+function loadImage(src) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.referrerPolicy = "no-referrer";
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
   });
 }
 
-function addFullBleedImage(slide, imageUrl, side = "right") {
-  const x = side === "right" ? 6.0 : 0;
-  const w = side === "right" ? 4.0 : 6.0;
-  if (imageUrl.startsWith("data:")) {
-    slide.addImage({
-      data: imageUrl,
-      x,
-      y: 0,
-      w,
-      h: SLIDE_H,
-    });
-  } else {
-    slide.addImage({
-      path: imageUrl,
-      x,
-      y: 0,
-      w,
-      h: SLIDE_H,
-    });
+// Crop an image to "cover" a box (matching CSS object-cover / the editor).
+async function cropToCover(src, boxW, boxH) {
+  if (!src || !boxW || !boxH) return null;
+  try {
+    const img = await loadImage(src);
+    if (!img || !img.naturalWidth || !img.naturalHeight) return null;
+
+    const nw = img.naturalWidth;
+    const nh = img.naturalHeight;
+    if (Math.abs(nw / nh - boxW / boxH) < 0.005) return null;
+
+    const scale = Math.max(nw / boxW, nh / boxH);
+    const sw = boxW * scale;
+    const sh = boxH * scale;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = boxW;
+    canvas.height = boxH;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, (nw - sw) / 2, (nh - sh) / 2, sw, sh, 0, 0, boxW, boxH);
+    return canvas.toDataURL("image/jpeg", 0.92);
+  } catch (err) {
+    console.warn("Image crop failed, exporting without crop:", err);
+    return null;
   }
 }
 
-export function titleSlideLayout(slide, theme, title, slideData) {
-  const content = extractSlideContent(slideData);
-
-  if (content.bgImages.length > 0 && content.bgImages[0].src) {
-    addFullBleedImage(slide, content.bgImages[0].src, "right");
-  } else if (content.background?.type === "image" && content.background.value) {
-    addFullBleedImage(slide, content.background.value, "right");
-  }
-
-  slide.addText(title || content.heading || "Untitled", {
-    x: MARGIN_LEFT,
-    y: 2.5,
-    w: 5.3,
-    h: 2,
-    fontFace: "Georgia",
-    fontSize: 44,
-    bold: true,
-    color: theme.text || "1A1A1A",
-    align: "left",
-  });
-
-  if (content.bullets.length > 0) {
-    slide.addText(content.bullets[0], {
-      x: MARGIN_LEFT,
-      y: 4.8,
-      w: 5.3,
-      h: 1,
-      fontSize: 18,
-      color: "3A3A3A",
-    });
-  }
+function addImageCover(slide, src, x, y, w, h) {
+  const isData = src.startsWith("data:") || src.startsWith("blob:");
+  const opts = { x, y, w, h };
+  if (isData) opts.data = src;
+  else opts.path = src;
+  slide.addImage(opts);
 }
 
-export function sectionDividerLayout(slide, theme, slideData) {
-  const content = extractSlideContent(slideData);
+// Main entry: render one slide. Signature kept for the caller.
+export async function exportSlideWithElements(slide, slideData, themeColors, bodyFont, headingFont) {
+  const theme = {
+    primary: normalizeHex(themeColors.primary || "6366F1"),
+    accent: normalizeHex(themeColors.accent || "818CF8"),
+    background: normalizeHex(themeColors.background || "F5F5F7"),
+    text: normalizeHex(themeColors.text || "111827"),
+    textMuted: normalizeHex(themeColors.textMuted || "6B7280"),
+    headingFont: headingFont || "Georgia",
+    bodyFont: bodyFont || "Arial",
+  };
 
-  if (content.bgImages.length > 0 && content.bgImages[0].src) {
-    addFullBleedImage(slide, content.bgImages[0].src, "right");
-  } else if (content.background?.type === "image" && content.background.value) {
-    addFullBleedImage(slide, content.background.value, "right");
+  const meta = { index: 0, total: 1 };
+  const desc = computeSlideLayout(slideData, theme, meta);
+
+  // 1) Background
+  if (desc.background.kind === "color" && desc.background.fill) {
+    slide.background = { color: desc.background.fill };
+  } else if (desc.background.kind === "gradient") {
+    const stops = String(desc.background.value).match(/#[0-9a-fA-F]{3,8}/g);
+    if (Array.isArray(stops) && stops.length >= 2) {
+      slide.background = { color: interpolateColor(stops[0], stops[1], 0.5) };
+    }
   }
 
-  slide.addText(content.heading, {
-    x: MARGIN_LEFT,
-    y: 2.5,
-    w: 5.3,
-    h: 2,
-    fontFace: "Georgia",
-    fontSize: 52,
-    bold: true,
-    color: theme.text || "1A1A1A",
-    align: "left",
-  });
-
-  if (content.bullets.length > 0) {
-    slide.addText(content.bullets[0], {
-      x: MARGIN_LEFT,
-      y: 4.8,
-      w: 5.3,
-      h: 1,
-      fontSize: 20,
-      color: "3A3A3A",
-    });
-  }
-}
-
-export function bigStatLayout(slide, theme, slideData) {
-  const content = extractSlideContent(slideData);
-
-  if (content.bgImages.length > 0 && content.bgImages[0].src) {
-    addFullBleedImage(slide, content.bgImages[0].src, "right");
+  // 2) Cover image (full-bleed or right panel)
+  if (desc.image && desc.image.src) {
+    const boxW = Math.round(desc.image.w * 96);
+    const boxH = Math.round(desc.image.h * 96);
+    const cover = await cropToCover(desc.image.src, boxW, boxH);
+    if (cover) {
+      slide.addImage({ data: cover, x: desc.image.x, y: desc.image.y, w: desc.image.w, h: desc.image.h });
+    } else {
+      addImageCover(slide, desc.image.src, desc.image.x, desc.image.y, desc.image.w, desc.image.h);
+    }
   }
 
-  slide.addText(content.heading, {
-    x: MARGIN_LEFT,
-    y: 1.5,
-    w: 5.3,
-    h: 2,
-    fontFace: "Georgia",
-    fontSize: 64,
-    bold: true,
-    color: theme.primary || "6366F1",
-    align: "left",
-  });
-
-  if (content.bullets.length > 0) {
-    slide.addText(content.bullets[0], {
-      x: MARGIN_LEFT,
-      y: 3.8,
-      w: 5.3,
-      h: 1,
-      fontSize: 22,
-      color: "3A3A3A",
-      align: "left",
-    });
-  }
-}
-
-export function twoColumnLayout(slide, theme, slideData) {
-  const content = extractSlideContent(slideData);
-
-  slide.addText(content.heading, {
-    x: MARGIN_LEFT,
-    y: MARGIN_TOP,
-    w: 5.3,
-    h: 0.8,
-    fontFace: "Georgia",
-    fontSize: 32,
-    bold: true,
-    color: theme.text || "1A1A1A",
-  });
-
-  const midPoint = Math.ceil(content.bullets.length / 2);
-  const leftBullets = content.bullets.slice(0, midPoint);
-  const rightBullets = content.bullets.slice(midPoint);
-
-  let leftY = 1.4;
-  leftBullets.forEach((point) => {
-    slide.addText(point, {
-      x: MARGIN_LEFT,
-      y: leftY,
-      w: 4.0,
-      h: 0.5,
-      fontSize: 18,
-      color: "3A3A3A",
-    });
-    leftY += 0.55;
-  });
-
-  let rightY = 1.4;
-  rightBullets.forEach((point) => {
-    slide.addText(point, {
-      x: 5.5,
-      y: rightY,
-      w: 4.0,
-      h: 0.5,
-      fontSize: 18,
-      color: "3A3A3A",
-    });
-    rightY += 0.55;
-  });
-
-  if (content.images.length > 0 && content.images[0].src) {
-    addFullBleedImage(slide, content.images[0].src, "right");
-  }
-}
-
-export function contentOnlyLayout(slide, theme, slideData) {
-  const content = extractSlideContent(slideData);
-
-  slide.addText(content.heading, {
-    x: MARGIN_LEFT,
-    y: MARGIN_TOP,
-    w: 5.3,
-    h: 0.8,
-    fontFace: "Georgia",
-    fontSize: 32,
-    bold: true,
-    color: theme.text || "1A1A1A",
-  });
-
-  let yPos = 1.4;
-  content.bullets.forEach((point) => {
-    slide.addText("\u2022 " + point, {
-      x: MARGIN_LEFT,
-      y: yPos,
-      w: 8.5,
-      h: 0.5,
-      fontSize: 18,
-      color: "3A3A3A",
-    });
-    yPos += 0.5;
-  });
-
-  if (content.images.length > 0 && content.images[0].src) {
-    addFullBleedImage(slide, content.images[0].src, "right");
-  }
-}
-
-export function modernLayout(slide, theme, slideData) {
-  const content = extractSlideContent(slideData);
-
-  slide.addText(content.heading, {
-    x: MARGIN_LEFT,
-    y: MARGIN_TOP,
-    w: 5.3,
-    h: 0.9,
-    fontFace: "Georgia",
-    fontSize: 30,
-    bold: true,
-    color: "1A1A1A",
-  });
-
-  if (content.bullets.length > 0) {
-    slide.addText(content.bullets[0], {
-      x: MARGIN_LEFT,
-      y: 1.3,
-      w: 5.3,
-      h: 1.3,
-      fontSize: 13,
-      color: "3A3A3A",
+  // 3) Dark overlay (section dividers over full-bleed images)
+  if (desc.overlay) {
+    const alpha = Math.round(desc.overlay.opacity * 255).toString(16).padStart(2, "0");
+    slide.addShape("rect", {
+      x: desc.overlay.x,
+      y: desc.overlay.y,
+      w: desc.overlay.w,
+      h: desc.overlay.h,
+      fill: { color: (desc.overlay.hex || "0F172A") + alpha },
+      line: { color: "FFFFFF00" },
     });
   }
 
-  let yPos = 2.7;
-  content.bullets.slice(1).forEach((bullet, i) => {
-    const cardTitle = bullet.split("\n")[0] || bullet.slice(0, 30) + "...";
-    const cardBody = bullet.split("\n").slice(1).join("\n") || bullet.slice(0, 80);
-
-    addCard(slide, {
-      x: MARGIN_LEFT + (i % 2) * 2.8,
-      y: yPos + Math.floor(i / 2) * 1.9,
-      w: 2.6,
-      h: 1.7,
-      title: cardTitle,
-      body: cardBody,
+  // 4) Text blocks (top-aligned — prevents the "doubled/overlap" look)
+  for (const t of desc.texts || []) {
+    if (!t.text || !String(t.text).trim()) continue;
+    const colorOption =
+      t.opacity !== undefined && t.hexColor
+        ? { color: t.hexColor, transparency: Math.round((1 - t.opacity) * 100) }
+        : normalizeHex(t.hexColor || t.color || theme.text);
+    slide.addText(String(t.text), {
+      x: t.x,
+      y: t.y,
+      w: t.w,
+      h: t.h,
+      fontSize: t.size,
+      bold: t.bold || false,
+      color: colorOption,
+      fontFace: t.font || theme.bodyFont,
+      align: t.align || "left",
+      valign: "top",
+      fit: "shrink",
     });
-  });
+  }
 
-  if (content.images.length > 0 && content.images[0].src) {
-    addFullBleedImage(slide, content.images[0].src, "right");
+  // 5) Cards
+  for (const c of desc.cards || []) {
+    slide.addShape("roundRect", {
+      x: c.x,
+      y: c.y,
+      w: c.w,
+      h: c.h,
+      fill: { color: normalizeHex(c.fill || "F8F9FA") },
+      line: { color: normalizeHex(c.border || "E8E8F0"), width: 0.5 },
+      rectRadius: 0.08,
+    });
+    if (c.title) {
+      slide.addText(String(c.title), {
+        x: c.x + 0.18,
+        y: c.y + 0.12,
+        w: c.w - 0.36,
+        h: 0.34,
+        fontFace: theme.headingFont,
+        fontSize: 15,
+        bold: true,
+        color: theme.text,
+        valign: "top",
+        fit: "shrink",
+      });
+    }
+    if (c.body) {
+      slide.addText(String(c.body), {
+        x: c.x + 0.18,
+        y: c.y + 0.46,
+        w: c.w - 0.36,
+        h: c.h - 0.58,
+        fontSize: 11,
+        color: normalizeHex("3A3A3A"),
+        fontFace: theme.bodyFont,
+        valign: "top",
+        fit: "shrink",
+      });
+    }
+  }
+
+  // 6) Bullet lists (content-only)
+  for (const b of desc.bullets || []) {
+    slide.addText(String(b.text), {
+      x: b.x,
+      y: b.y,
+      w: b.w,
+      h: b.h,
+      fontSize: b.size,
+      color: normalizeHex(b.color || theme.text),
+      fontFace: b.font || theme.bodyFont,
+      bullet: { code: "2022", indent: 12 },
+      valign: "top",
+      fit: "shrink",
+    });
+  }
+
+  // 7) Two-column bullets
+  for (const col of desc.columns || []) {
+    let yCursor = col.y;
+    for (const item of col.bullets || []) {
+      slide.addText(String(item.text), {
+        x: col.x,
+        y: yCursor,
+        w: col.w,
+        h: 0.5,
+        fontSize: item.size || 17,
+        color: normalizeHex(item.color || theme.text),
+        fontFace: item.font || theme.bodyFont,
+        bullet: { code: "2022", indent: 12 },
+        valign: "top",
+        fit: "shrink",
+      });
+      yCursor += 0.62;
+    }
   }
 }

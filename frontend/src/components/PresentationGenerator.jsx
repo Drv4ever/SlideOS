@@ -76,16 +76,19 @@ export function PresentationGenerator({ onThemeChange }) {
       const engineType = e.detail;
       if (engineType === 'cinematic') {
         setSelectedTheme('orbit');
+        handleThemeChange('orbit');
         setTextAmount('minimal');
         setTone('enthusiastic');
         setSlides('8');
       } else if (engineType === 'poster') {
         setSelectedTheme('cosmos');
+        handleThemeChange('cosmos');
         setTextAmount('concise');
         setScenario('pitch');
         setSlides('5');
       } else if (engineType === 'realism') {
         setSelectedTheme('noir');
+        handleThemeChange('noir');
         setTextAmount('minimal');
         setTone('professional');
         setSlides('10');
@@ -105,8 +108,10 @@ export function PresentationGenerator({ onThemeChange }) {
     const theme = themes.find(t => t.id === themeId);
     if (theme && onThemeChange) {
       onThemeChange({
+        name: theme.name,
         colors: theme.colors,
-        fonts: theme.fontFamily
+        fontFamily: theme.fontFamily,
+        headingWeight: theme.headingWeight,
       });
     }
   };
@@ -587,6 +592,7 @@ export function PresentationGenerator({ onThemeChange }) {
                   key={s.tag}
                   onClick={() => {
                     setSelectedTheme(s.theme);
+                    handleThemeChange(s.theme);
                     setSlides(s.slides);
                     setTextAmount(s.text);
                     setTone(s.tone);

@@ -1,5 +1,35 @@
 export const themes = [
   {
+    name: 'Cornflower Blue',
+    id: 'cornflower',
+    fontFamily: { heading: 'Space Grotesk', body: 'DM Sans' },
+    headingWeight: 700,
+    colors: {
+      primary: '#3b82f6',
+      accent: '#22d3ee',
+      background: '#ffffff',
+      surface: '#eff6ff',
+      border: '#dbeafe',
+      text: '#1e3a8a',
+      textMuted: '#64748b',
+    },
+  },
+  {
+    name: 'Cosmos',
+    id: 'cosmos',
+    fontFamily: { heading: 'Outfit', body: 'DM Sans' },
+    headingWeight: 700,
+    colors: {
+      primary: '#7c3aed',
+      accent: '#f59e0b',
+      background: '#ffffff',
+      surface: '#f5f3ff',
+      border: '#e9d5ff',
+      text: '#3b0764',
+      textMuted: '#7c6a9e',
+    },
+  },
+  {
     name: 'Microsoft Fluent',
     id: 'fluent',
     fontFamily: { heading: 'Outfit', body: 'DM Sans' },

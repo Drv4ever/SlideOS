@@ -1,18 +1,19 @@
-import { useLocation, useNavigate } from "react-router-dom";
+﻿import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import { Rnd } from "react-rnd";
 import PptxGenJS from "pptxgenjs";
 import { updatePresentation } from "../services/presentationService";
 import { applyTemplate } from "../utils/templates";
+import { CURATED_LOOKUP } from "../utils/slideModel";
 import {
   defineMaster,
-  titleSlideLayout,
-  sectionDividerLayout,
-  bigStatLayout,
-  twoColumnLayout,
-  contentOnlyLayout,
-  modernLayout,
+  exportSlideWithElements,
 } from "../utils/pptxLayouts";
+import {
+  computeSlideLayout,
+  SLIDE_W,
+  SLIDE_H,
+} from "../utils/designedLayouts";
 import {
   Copy,
   Type,
@@ -58,6 +59,249 @@ import {
   SidebarTrigger,
 } from "../components/ui/sidebar";
 
+// Designed presentation renderer (block design).
+// Renders the SAME design description as the PPTX export (computeSlideLayout on a
+// 10 x 5.625 in slide): accent bar, serif headings, cards, image panels, big
+// stat, footers. Web maps inch->percentage and pt->cqw so the stage scales 1:1
+// to the exported PowerPoint file. Text is top-aligned / modest box heights, so
+// nothing double-renders or bleeds into the block below it (PowerPoint centers
+// vertically by default).
+function DesignStage({ desc, animating, accentFont, bodyFont }) {
+  const pctX = (x) => (x / SLIDE_W) * 100;
+  const pctY = (y) => (y / SLIDE_H) * 100;
+  const pctW = (w) => (w / SLIDE_W) * 100;
+  const pctH = (h) => (h / SLIDE_H) * 100;
+  // 1pt = 1/7.2 % of the 720pt-wide slide -> cqw (relative to stage container)
+  const pt = (size) => `${(size / 7.2).toFixed(3)}cqw`;
+  const anim = (i = 0) => ({
+    opacity: animating ? 0 : 1,
+    transform: animating ? "translateY(8px)" : "translateY(0px)",
+    transition: "opacity 420ms ease, transform 420ms ease",
+    transitionDelay: `${i * 60}ms`,
+  });
+
+  return (
+    <>
+      {/* Slide background (color / gradient / transparent for full-bleed images) */}
+      <div
+        className="absolute inset-0"
+        style={{ background: desc.background.css }}
+      />
+
+      {/* Accent bar (matches PPTX master) */}
+      <div
+        className="absolute top-0 left-0 right-0 z-10 pointer-events-none"
+        style={{ height: `${pctH(0.14)}%`, background: desc.accentBar }}
+      />
+
+      {/* Full-bleed background image + dark overlay (section dividers) */}
+      {desc.image?.mode === "fullbleed" && (
+        <img
+          src={desc.image.src}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+        />
+      )}
+      {desc.overlay && (
+        <div
+          className="absolute"
+          style={{
+            left: `${pctX(desc.overlay.x)}%`,
+            top: `${pctY(desc.overlay.y)}%`,
+            width: `${pctW(desc.overlay.w)}%`,
+            height: `${pctH(desc.overlay.h)}%`,
+            background: desc.overlay.css,
+          }}
+        />
+      )}
+
+      {/* Right image panel (cover) */}
+      {desc.image?.mode === "panel" && (
+        <img
+          src={desc.image.src}
+          alt=""
+          className="absolute object-cover pointer-events-none"
+          style={{
+            left: `${pctX(desc.image.x)}%`,
+            top: `${pctY(desc.image.y)}%`,
+            width: `${pctW(desc.image.w)}%`,
+            height: `${pctH(desc.image.h)}%`,
+          }}
+        />
+      )}
+
+      {/* Text blocks (top-aligned, modest heights) */}
+      {desc.texts?.map((t, i) => (
+        <div
+          key={`t-${i}`}
+          className="absolute select-text"
+          style={{
+            left: `${pctX(t.x)}%`,
+            top: `${pctY(t.y)}%`,
+            width: `${pctW(t.w)}%`,
+            height: `${pctH(t.h)}%`,
+            fontSize: pt(t.size),
+            fontWeight: t.bold ? 700 : 400,
+            color: t.color,
+            fontFamily: `${t.font || bodyFont}, sans-serif`,
+            textAlign: t.align || "left",
+            lineHeight: 1.15,
+            overflow: "hidden",
+            ...anim(i),
+          }}
+        >
+          {t.text}
+        </div>
+      ))}
+
+      {/* Cards */}
+      {desc.cards?.map((c, i) => (
+        <div
+          key={`c-${i}`}
+          className="absolute rounded-lg border overflow-hidden"
+          style={{
+            left: `${pctX(c.x)}%`,
+            top: `${pctY(c.y)}%`,
+            width: `${pctW(c.w)}%`,
+            height: `${pctH(c.h)}%`,
+            background: "#F8F9FA",
+            borderColor: "#E8E8F0",
+            padding: `${pctH(0.12)}% ${pctW(0.18)}%`,
+            ...anim(i),
+          }}
+        >
+          <div
+            style={{
+              fontSize: pt(15),
+              fontWeight: 700,
+              fontFamily: `${accentFont}, sans-serif`,
+              color: "#111827",
+              lineHeight: 1.1,
+            }}
+          >
+            {c.title}
+          </div>
+          {c.body && (
+            <div
+              style={{
+                fontSize: pt(11),
+                fontFamily: `${bodyFont}, sans-serif`,
+                color: "#3A3A3A",
+                marginTop: `${pctH(0.05)}%`,
+                whiteSpace: "pre-wrap",
+                lineHeight: 1.2,
+              }}
+            >
+              {c.body}
+            </div>
+          )}
+        </div>
+      ))}
+
+      {/* Bullet lists (content-only) */}
+      {desc.bullets?.map((b, i) => (
+        <div
+          key={`b-${i}`}
+          className="absolute"
+          style={{
+            left: `${pctX(b.x)}%`,
+            top: `${pctY(b.y)}%`,
+            width: `${pctW(b.w)}%`,
+            height: `${pctH(b.h)}%`,
+            fontSize: pt(b.size),
+            fontFamily: `${b.font || bodyFont}, sans-serif`,
+            color: b.color,
+            lineHeight: 1.2,
+            overflow: "hidden",
+            ...anim(i),
+          }}
+        >
+          <span className="mr-2">•</span>
+          {b.text}
+        </div>
+      ))}
+
+      {/* Two-column bullet lists */}
+      {desc.columns?.map((col, ci) =>
+        (col.bullets || []).map((item, i) => (
+          <div
+            key={`col-${ci}-${i}`}
+            className="absolute"
+            style={{
+              left: `${pctX(col.x)}%`,
+              top: `${pctY(col.y + i * 0.62)}%`,
+              width: `${pctW(col.w)}%`,
+              height: `${pctH(0.5)}%`,
+              fontSize: pt(item.size || 17),
+              fontFamily: `${item.font || bodyFont}, sans-serif`,
+              color: item.color,
+              lineHeight: 1.2,
+              overflow: "hidden",
+              ...anim(i),
+            }}
+          >
+            <span className="mr-2">•</span>
+            {item.text}
+          </div>
+        ))
+      )}
+
+      {/* Footer (matches PPTX master) */}
+      {desc.footer && (
+        <div
+          className="absolute left-0 right-0 bottom-0 flex items-center justify-between px-[3%] pb-[0.6%] z-10"
+          style={{ fontSize: pt(10), fontFamily: "Georgia, serif", color: "#94A3B8" }}
+        >
+          <span>{desc.footer.brand}</span>
+          <span>Slide {desc.footer.page}</span>
+        </div>
+      )}
+    </>
+  );
+}
+
+// Compact designed thumbnail (accent bar + heading + image panel).
+function MiniSlide({ slide, theme, headingFont }) {
+  const desc = computeSlideLayout(slide, theme, { index: 0, total: 1 });
+  const heading = desc.texts?.[0]?.text || "Untitled Slide";
+  return (
+    <>
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            desc.background.css === "transparent"
+              ? theme.background
+              : desc.background.css,
+        }}
+      />
+      <div
+        className="absolute top-0 left-0 right-0 h-[2px]"
+        style={{ background: desc.accentBar }}
+      />
+      {desc.image && (
+        <img
+          src={desc.image.src}
+          alt=""
+          className="absolute object-cover"
+          style={{ left: "58%", top: 0, width: "42%", height: "100%" }}
+        />
+      )}
+      <div
+        className="absolute left-[4%] top-[24%] w-[52%] truncate select-none"
+        style={{
+          fontSize: "10px",
+          fontWeight: 700,
+          fontFamily: `${headingFont || "Georgia"}, serif`,
+          color: theme.text,
+        }}
+      >
+        {heading}
+      </div>
+    </>
+  );
+}
+
 export default function PresentationView() {
   const { state } = useLocation();
   const navigate = useNavigate();
@@ -73,23 +317,41 @@ export default function PresentationView() {
   // Left Sidebar inspector tab state: 'slides' or 'design'
   const [inspectorTab, setInspectorTab] = useState('slides');
 
-  const defaultTheme = {
-    primary: incomingTheme?.colors?.primary || "#f97316",
-    accent: incomingTheme?.colors?.accent || "#fb923c",
-    background: incomingTheme?.colors?.background || "#ffffff",
-    surface: incomingTheme?.colors?.surface || "#f5f5f5",
-    border: incomingTheme?.colors?.border || "#e5e7eb",
-    text: incomingTheme?.colors?.text || "#111827",
-    textMuted: incomingTheme?.colors?.textMuted || "#6b7280",
-  };
+  const defaultTheme = (() => {
+    const savedTheme = incomingTheme || CURATED_LOOKUP[themeId] || CURATED_LOOKUP.cornflower;
+    const colors = savedTheme?.colors || {};
+    return {
+      primary: colors.primary || "#f97316",
+      accent: colors.accent || "#fb923c",
+      background: colors.background || "#ffffff",
+      surface: colors.surface || "#f5f5f5",
+      border: colors.border || "#e5e7eb",
+      text: colors.text || "#111827",
+      textMuted: colors.textMuted || "#6b7280",
+    };
+  })();
   const bodyFont =
     incomingTheme?.fontFamily?.body ||
     incomingTheme?.fonts?.body ||
+    (CURATED_LOOKUP[themeId]?.fontFamily?.body) ||
     "DM Sans";
   const headingFont =
     incomingTheme?.fontFamily?.heading ||
     incomingTheme?.fonts?.heading ||
+    (CURATED_LOOKUP[themeId]?.fontFamily?.heading) ||
     bodyFont;
+
+  const designTheme = {
+    primary: defaultTheme.primary,
+    accent: defaultTheme.accent,
+    background: defaultTheme.background,
+    surface: defaultTheme.surface,
+    border: defaultTheme.border,
+    text: defaultTheme.text,
+    textMuted: defaultTheme.textMuted,
+    headingFont: headingFont || "Georgia",
+    bodyFont: bodyFont || "Arial",
+  };
 
   const convertSlides = (slides) => {
     if (!slides.length) {
@@ -398,8 +660,9 @@ export default function PresentationView() {
     reader.readAsDataURL(file);
   };
 
-  const exportPPT = () => {
+  const exportPPT = async () => {
     const pres = new PptxGenJS();
+    pres.layout = "LAYOUT_16x9";
 
     const cleanHex = (hex) => (hex || "").replace("#", "");
 
@@ -413,55 +676,14 @@ export default function PresentationView() {
 
     defineMaster(pres, themeColors);
 
-    slides.forEach((slideData) => {
-      const layoutPattern =
-        slideData.layoutPattern || slideData.layout || "content-only";
+    for (const slideData of slides) {
       const slide = pres.addSlide({ masterName: "MODERN_MASTER" });
+      // Shared design engine: same layout description the Presentation View renders,
+      // so the PowerPoint export matches the on-screen deck (blocks, cards, images).
+      await exportSlideWithElements(slide, slideData, themeColors, bodyFont, headingFont);
+    }
 
-      const bgFill =
-        slideData.background?.type === "color" &&
-        slideData.background?.value?.startsWith("#")
-          ? cleanHex(slideData.background.value)
-          : slideData.background?.type === "gradient" &&
-              typeof slideData.background?.value === "string"
-            ? cleanHex(
-                slideData.background.value.match(
-                  /#[0-9a-fA-F]{3,8}/g
-                )?.[0]
-              )
-            : null;
-
-      if (bgFill) {
-        slide.background = { fill: bgFill };
-      }
-
-      switch (layoutPattern) {
-        case "title-slide":
-          titleSlideLayout(slide, themeColors, presentationTitle, slideData);
-          break;
-        case "section-divider":
-          sectionDividerLayout(slide, themeColors, slideData);
-          break;
-        case "big-stat":
-          bigStatLayout(slide, themeColors, slideData);
-          break;
-        case "two-column":
-          twoColumnLayout(slide, themeColors, slideData);
-          break;
-        default:
-          if (
-            slideData.elements?.some(
-              (e) => e.type === "image" && e.zIndex !== 0
-            )
-          ) {
-            modernLayout(slide, themeColors, slideData);
-          } else {
-            contentOnlyLayout(slide, themeColors, slideData);
-          }
-      }
-    });
-
-    pres.writeFile({ fileName: `${presentationTitle || "Presentation"}.pptx` });
+    await pres.writeFile({ fileName: `${presentationTitle || "Presentation"}.pptx` });
   };
 
   const getBackgroundStyle = () => {
@@ -640,6 +862,13 @@ export default function PresentationView() {
     return pages;
   };
 
+  const presentDesc = isPresenting
+    ? computeSlideLayout(slides[presentIndex] || {}, designTheme, {
+        index: presentIndex,
+        total: slides.length,
+      })
+    : null;
+
   return (
     <SidebarProvider className="bg-muted text-foreground font-sans select-none">
       <Sidebar collapsible="offcanvas" variant="sidebar">
@@ -775,7 +1004,7 @@ export default function PresentationView() {
                       {/* Mini Slide Canvas Preview Box */}
                       <div
                         className="w-full h-16 rounded-lg border border-border overflow-hidden relative shadow-[inset_0_1px_3px_rgba(0,0,0,0.02)]"
-                        style={{ background: slide.background?.value || "var(--sidebar-accent)" }}
+                        style={{ background: "var(--sidebar-accent)" }}
                       >
                         {/* Microsoft Fluent Theme Mini Accents */}
                         {themeIdState === "fluent" && (
@@ -785,15 +1014,11 @@ export default function PresentationView() {
                             <div className="absolute top-0 left-0 right-0 h-0.5 bg-orange-500 pointer-events-none z-0" />
                           </>
                         )}
-                        <div
-                          className="text-[9px] font-bold truncate max-w-full px-2 py-1 select-none relative z-10"
-                          style={{
-                            color: slide.elements.find((el) => el.type === "text")?.color || "var(--sidebar-foreground)",
-                            fontFamily: `${headingFont}, sans-serif`
-                          }}
-                        >
-                          {slide.elements.find((el) => el.type === "text")?.content || "Untitled Slide"}
-                        </div>
+                        <MiniSlide
+                          slide={slide}
+                          theme={designTheme}
+                          headingFont={headingFont}
+                        />
                       </div>
                     </div>
                   ))}
@@ -1128,7 +1353,7 @@ export default function PresentationView() {
           {/* Top Stage bar */}
           <div className="px-6 py-3.5 flex items-center justify-between border-b border-white/5 select-none relative z-10 bg-zinc-950/80 backdrop-blur-md">
             <div className="text-xs font-bold text-zinc-400 uppercase tracking-widest font-sans flex items-center gap-1.5">
-              <span className="text-orange-400 font-extrabold animate-pulse">●</span>
+              <span className="text-orange-400 font-extrabold animate-pulse">â—</span>
               <span>Presenting: {presentationTitle || "Untitled deck"}</span>
             </div>
             
@@ -1148,7 +1373,7 @@ export default function PresentationView() {
             <div 
               className="absolute w-2/3 h-2/3 pointer-events-none blur-[140px] opacity-25 rounded-full transition-all duration-500"
               style={{
-                background: slides[presentIndex]?.background?.value || "#ffffff"
+                background: presentDesc?.background?.css || "#ffffff"
               }}
             />
 
@@ -1163,12 +1388,13 @@ export default function PresentationView() {
               <ChevronLeft className="w-6 h-6" />
             </button>
 
-            {/* Slide Deck Container */}
+{/* Slide Deck Container */}
             <div
               style={{
                 width: "min(1280px, 90vw)",
                 aspectRatio: "16 / 9",
-                background: slides[presentIndex]?.background?.value || "#ffffff",
+                background: "transparent",
+                containerType: "inline-size",
                 transition: "opacity 320ms ease, transform 320ms ease",
                 opacity: isSlideAnimating ? 0.6 : 1,
                 transform: isSlideAnimating ? "scale(0.985)" : "scale(1)",
@@ -1184,74 +1410,14 @@ export default function PresentationView() {
                 </>
               )}
 
-               {/* Background Image (zIndex 0) */}
-               {slides[presentIndex]?.background?.type === "image" && slides[presentIndex]?.background?.value && (
-                 <img
-                   src={slides[presentIndex].background.value}
-                   alt=""
-                   className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-                 />
-               )}
-
-               {/* Background Image Elements (zIndex 0) */}
-               {slides[presentIndex]?.elements
-                 .filter((el) => el.type === "image" && el.zIndex === 0)
-                 .map((el) => (
-                   <img
-                     key={el.id}
-                     src={el.src}
-                     alt=""
-                     className="absolute pointer-events-none"
-                     style={{
-                       left: el.x,
-                       top: el.y,
-                       width: el.width,
-                       height: el.height,
-                       opacity: el.opacity !== undefined ? el.opacity : 1,
-                       objectFit: "cover",
-                     }}
-                   />
-                 ))}
-
-               {slides[presentIndex]?.elements?.filter((el) => !(el.type === "image" && el.zIndex === 0)).map((el, elementIndex) => (
-                <div
-                  key={el.id}
-                  style={{
-                    position: "absolute",
-                    left: el.x,
-                    top: el.y,
-                    width: el.width,
-                    height: el.height,
-                    opacity: isSlideAnimating ? 0 : 1,
-                    transform: isSlideAnimating ? "translateY(8px)" : "translateY(0px)",
-                    transition: "opacity 420ms ease, transform 420ms ease",
-                    transitionDelay: `${elementIndex * 60}ms`,
-                  }}
-                >
-                  {el.type === "text" && (
-                    <div
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        fontSize: el.fontSize,
-                        fontWeight: el.bold ? "bold" : "normal",
-                        color: el.color,
-                        fontFamily: `${el.fontFamily || bodyFont}, sans-serif`,
-                      }}
-                      className="whitespace-pre-wrap leading-relaxed select-text"
-                    >
-                      {el.content}
-                    </div>
-                  )}
-                  {el.type === "image" && (
-                    <img
-                      src={el.src}
-                      alt=""
-                      className="w-full h-full object-cover rounded-md pointer-events-none"
-                    />
-                  )}
-                </div>
-              ))}
+              {presentDesc && (
+                <DesignStage
+                  desc={presentDesc}
+                  animating={isSlideAnimating}
+                  accentFont={headingFont}
+                  bodyFont={bodyFont}
+                />
+              )}
             </div>
 
             {/* Right Stage Zone Navigation */}

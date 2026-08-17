@@ -28,20 +28,9 @@ export default function PresentationPreview() {
   const textAmount = state?.textAmount || "detailed";
   const activeTheme = selectedTheme?.colors || themePalette[themeId] || themePalette.cornflower;
 
-  if (!initialPresentation) {
-    return (
-      <div className="p-10 text-center flex flex-col items-center gap-4 justify-center min-h-[50vh]">
-        <p className="text-muted-foreground font-medium">No presentation found.</p>
-        <Button onClick={() => navigate("/")} variant="destructive" className="cursor-pointer">
-          Go Back
-        </Button>
-      </div>
-    );
-  }
-
   // Normalize so both legacy {heading,content} and new {elements,layout} formats work
   const normalized = normalizePresentation(
-    { title: initialTitle, theme: selectedTheme, slides: initialPresentation.slides },
+    { title: initialTitle, theme: selectedTheme, slides: initialPresentation?.slides || [] },
     themeId
   );
   const [slides, setSlides] = useState(normalized.slides);
@@ -54,6 +43,17 @@ export default function PresentationPreview() {
       setTitle(state.title);
     }
   }, [state?.title]);
+
+  if (!initialPresentation) {
+    return (
+      <div className="p-10 text-center flex flex-col items-center gap-4 justify-center min-h-[50vh]">
+        <p className="text-muted-foreground font-medium">No presentation found.</p>
+        <Button onClick={() => navigate("/")} variant="destructive" className="cursor-pointer">
+          Go Back
+        </Button>
+      </div>
+    );
+  }
 
   /* ================= UPDATE FUNCTIONS ================= */
 
