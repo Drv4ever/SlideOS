@@ -12,13 +12,18 @@ import {
   toOutlineSlide,
   updateSlideRole,
   addSlideRoleBullet,
+  extractSlideRoles,
 } from "../utils/designedLayouts";
+import { remixDeck, remixSlide } from "../utils/remix";
+import { generateSlideImage } from "../utils/imageGen";
+import { toast } from "sonner";
 import {
   Copy,
   Type,
   Image as ImageIcon,
   Download,
   Sparkles,
+  Wand2,
   Palette,
   Play,
   X,
@@ -172,6 +177,9 @@ export default function PresentationView() {
   const [presentIndex, setPresentIndex] = useState(0);
   const [isSlideAnimating, setIsSlideAnimating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [remixingDeck, setRemixingDeck] = useState(false);
+  const [remixingSlide, setRemixingSlide] = useState(false);
+  const [generatingImage, setGeneratingImage] = useState(false);
 
   const activeSlide = slides[activeIndex];
 
@@ -288,6 +296,91 @@ export default function PresentationView() {
     const updatedNotes = [...slideNotes];
     updatedNotes[index] = value;
     setSlideNotes(updatedNotes);
+  };
+
+  // Redesign the whole deck in place (same content, fresh layout + copy).
+  const handleRemixDeck = async () => {
+    if (remixingDeck) return;
+    setRemixingDeck(true);
+    try {
+      const remixed = await remixDeck({
+        slides,
+        themeId: themeIdState,
+        textAmount,
+      });
+      setSlides(remixed);
+      toast.success("Deck redesigned — new layout applied");
+    } catch (error) {
+      console.error(error);
+      toast.error(error.message || "Failed to redesign deck");
+    } finally {
+      setRemixingDeck(false);
+    }
+  };
+
+  // Redesign only the active slide.
+  const handleRemixSlide = async () => {
+    if (remixingSlide) return;
+    setRemixingSlide(true);
+    try {
+      const remixed = await remixSlide({
+        slide: activeSlide,
+        themeId: themeIdState,
+        textAmount,
+      });
+      setSlides((prev) =>
+        prev.map((s, i) => (i === activeIndex ? remixed : s))
+      );
+      toast.success("Slide redesigned");
+    } catch (error) {
+      console.error(error);
+      toast.error(error.message || "Failed to redesign slide");
+    } finally {
+      setRemixingSlide(false);
+    }
+  };
+
+  // AI image generation for the active slide. The resulting URL flows through
+  // the same image slot (foreground element or slide.image) every renderer
+  // (canvas, thumbnails, present, PPTX export) already consumes.
+  const handleGenerateImage = async () => {
+    if (generatingImage) return;
+    const roles = extractSlideRoles(activeSlide);
+    const imagePrompt =
+      [
+        roles.heading,
+        ...(roles.bullets || []).slice(0, 2),
+      ]
+        .filter((t) => t && String(t).trim())
+        .join(" — ") || activeSlide?.imageKeyword || "Abstract presentation visual";
+    setGeneratingImage(true);
+    try {
+      const url = await generateSlideImage(imagePrompt);
+      setSlides((prev) =>
+        prev.map((s, i) => {
+          if (i !== activeIndex) return s;
+          const elements = Array.isArray(s.elements) ? s.elements : [];
+          if (elements.some((el) => el.type === "image" && el.zIndex !== 0)) {
+            return {
+              ...s,
+              elements: elements.map((el) =>
+                el.type === "image" && el.zIndex !== 0 ? { ...el, src: url } : el
+              ),
+            };
+          }
+          return {
+            ...s,
+            image: { url, thumb: url, alt: "AI generated image" },
+          };
+        })
+      );
+      toast.success("AI image generated");
+    } catch (error) {
+      console.error(error);
+      toast.error(error.message || "Failed to generate image");
+    } finally {
+      setGeneratingImage(false);
+    }
   };
 
   const duplicateSlide = () => {
@@ -691,6 +784,14 @@ await pres.writeFile({ fileName: `${presentationTitle || "Presentation"}.pptx` }
                     <ImageIcon className="w-3.5 h-3.5 text-muted-foreground" />
                     <span>Add Image</span>
                   </button>
+                  <button onClick={handleRemixSlide} disabled={remixingSlide} className="flex items-center justify-center gap-1.5 py-2 border border-border rounded-xl bg-sidebar-accent hover:bg-sidebar-accent/80 text-xs font-bold text-sidebar-accent-foreground transition-all cursor-pointer disabled:opacity-50 disabled:cursor-wait">
+                    {remixingSlide ? <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" /> : <Sparkles className="w-3.5 h-3.5 text-muted-foreground" />}
+                    <span>Remix Slide</span>
+                  </button>
+                  <button onClick={handleGenerateImage} disabled={generatingImage} className="flex items-center justify-center gap-1.5 py-2 border border-border rounded-xl bg-sidebar-accent hover:bg-sidebar-accent/80 text-xs font-bold text-sidebar-accent-foreground transition-all cursor-pointer disabled:opacity-50 disabled:cursor-wait">
+                    {generatingImage ? <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" /> : <Wand2 className="w-3.5 h-3.5 text-muted-foreground" />}
+                    <span>AI Image</span>
+                  </button>
                 </div>
               </div>
 
@@ -921,6 +1022,19 @@ await pres.writeFile({ fileName: `${presentationTitle || "Presentation"}.pptx` }
 
             {/* Right Action buttons */}
             <div className="flex items-center gap-2">
+              <button
+                onClick={handleRemixDeck}
+                disabled={remixingDeck}
+                className="flex items-center gap-1.5 bg-card border border-border/95 text-foreground/80 hover:bg-muted disabled:opacity-50 disabled:cursor-wait transition-all font-bold px-3 py-1.5 rounded-xl text-xs cursor-pointer active:scale-95 shadow-2xs"
+              >
+                {remixingDeck ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-orange-500" />
+                ) : (
+                  <Sparkles className="w-4 h-4 text-orange-500" />
+                )}
+                <span>{remixingDeck ? "Redesigning..." : "Redesign"}</span>
+              </button>
+
               <button
                 onClick={exportPPT}
                 className="flex items-center gap-1.5 bg-card border border-border/95 text-foreground/80 hover:bg-muted transition-all font-bold px-3 py-1.5 rounded-xl text-xs cursor-pointer active:scale-95 shadow-2xs"

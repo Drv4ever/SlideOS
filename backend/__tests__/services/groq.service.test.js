@@ -59,7 +59,7 @@ describe("generateWithGroq", () => {
     );
 
     const body = JSON.parse(global.fetch.mock.calls[0][1].body);
-    expect(body.model).toBe("llama-3.1-8b-instant");
+    expect(body.model).toBe("openai/gpt-oss-120b");
     expect(body.temperature).toBe(0.7);
     expect(body.response_format).toEqual({ type: "json_object" });
     expect(body.messages[0]).toHaveProperty("role", "system");
@@ -136,5 +136,47 @@ describe("generateWithGroq", () => {
     });
 
     expect(result.title).toBe("Test");
+  });
+
+  test("should use remix system prompt and pass deck content as-is when mode is remix", async () => {
+    global.fetch.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  title: "Redesigned",
+                  slides: [
+                    { slideNumber: 1, heading: "New Heading", content: ["Fresh point"], imageKeyword: "fresh visual", layout: "content-only" },
+                  ],
+                }),
+              },
+            },
+          ],
+        }),
+    });
+
+    const deckOutline = "Slide 1 [layout: title-slide]:\nIntro\n- Point one";
+
+    const result = await generateWithGroq({
+      prompt: deckOutline,
+      slides: 1,
+      textAmount: "concise",
+      theme: "orbit",
+      mode: "remix",
+    });
+
+    const body = JSON.parse(global.fetch.mock.calls[0][1].body);
+    // Remix prompt describes redesigning an existing deck...
+    expect(body.messages[0].content).toContain("redesigning an existing presentation");
+    expect(body.messages[0].content).toContain("Keep the SAME number of slides");
+    // ...and the deck content is sent verbatim (not prefixed with "Topic:").
+    expect(body.messages[1].content).toBe(deckOutline);
+
+    expect(result.title).toBe("Redesigned");
+    expect(result.slides[0].heading).toBe("New Heading");
+    expect(result.slides[0].layout).toBe("content-only");
   });
 });

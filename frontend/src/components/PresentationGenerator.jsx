@@ -15,13 +15,16 @@ import {
   Grid, 
   Layers, 
   ChevronRight, 
-  ChevronLeft 
+  ChevronLeft,
+  LayoutTemplate 
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
 import { Card } from './ui/card';
 import { savePresentation } from '../services/presentationService';
 import { themes } from '../utils/themes';
+import { DECK_TEMPLATES, templateToDeck } from '../utils/deckTemplates';
 
 export function PresentationGenerator({ onThemeChange }) {
   const navigate = useNavigate();
@@ -202,6 +205,58 @@ export function PresentationGenerator({ onThemeChange }) {
     }
   };
 
+  // Instant template use: build the deck from the seeded outline (no LLM round
+  // trip), save it, and open the outline editor. Users can then hit Redesign
+  // in the preview to let AI polish the template.
+  const handleUseTemplate = async (template) => {
+    const token = localStorage.getItem("token");
+    const isLikelyJwt = token && token.split(".").length === 3;
+    if (!isLikelyJwt) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      alert("Please login first. Missing or invalid auth token.");
+      return;
+    }
+
+    const deck = templateToDeck(template);
+    const theme = themes.find((t) => t.id === template.themeId);
+    if (theme && onThemeChange) {
+      onThemeChange({
+        name: theme.name,
+        colors: theme.colors,
+        fontFamily: theme.fontFamily,
+        headingWeight: theme.headingWeight,
+      });
+    }
+
+    let savedPresentationId = null;
+    try {
+      const saveResponse = await savePresentation({
+        title: template.name,
+        prompt: template.description,
+        content: deck.content,
+        theme: template.themeId,
+        slidesCount: deck.slidesCount,
+      });
+      savedPresentationId = saveResponse?.data?._id || null;
+      window.dispatchEvent(new CustomEvent('refresh-sidebar-decks'));
+    } catch (saveError) {
+      console.error("Failed to save template presentation:", saveError);
+    }
+
+    toast.success(`Template "${template.name}" loaded`);
+    navigate("/preview", {
+      state: {
+        presentation: deck.presentation,
+        presentationId: savedPresentationId,
+        title: template.name,
+        theme,
+        themeId: template.themeId,
+        textAmount: template.textAmount,
+      },
+    });
+  };
+
   // Helper to slice 3 themes for the interactive stack rendering
   const getVisibleThemeStack = () => {
     const stack = [];
@@ -281,6 +336,20 @@ export function PresentationGenerator({ onThemeChange }) {
               >
                 <SlidersHorizontal className="w-3.5 h-3.5" />
                 <span>Layout: {slides} Slides</span>
+              </button>
+
+              <button 
+                type="button"
+                onClick={() => setActiveMode(activeMode === 'templates' ? 'generate' : 'templates')}
+                title="Browse Templates"
+                className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center gap-1 text-xs font-semibold ${
+                  activeMode === 'templates' 
+                    ? 'text-foreground bg-sidebar-accent/80 border-border' 
+                    : 'text-muted-foreground hover:text-foreground bg-sidebar-accent hover:bg-sidebar-accent/80 border-border/50'
+                }`}
+              >
+                <LayoutTemplate className="w-3.5 h-3.5" />
+                <span>Templates</span>
               </button>
             </div>
 
@@ -559,6 +628,24 @@ export function PresentationGenerator({ onThemeChange }) {
                     <option value="pitch">Business Pitch Deck</option>
                   </select>
                 </div>
+
+                {/* 5. Audience Dropdown */}
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="audience-select" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Target audience</Label>
+                  <select 
+                    id="audience-select"
+                    value={audience} 
+                    onChange={(e) => setAudience(e.target.value)}
+                    className="w-full bg-sidebar-accent border border-border/80 rounded-xl px-3 py-2.5 text-sm text-foreground focus:ring-1.5 focus:ring-orange-500/25 focus:border-orange-500 outline-none transition-all cursor-pointer"
+                  >
+                    <option value="auto">Auto (Context aware)</option>
+                    <option value="general">General / Public</option>
+                    <option value="students">Students</option>
+                    <option value="executives">Executives</option>
+                    <option value="investors">Investors</option>
+                    <option value="technical">Technical / Experts</option>
+                  </select>
+                </div>
               </div>
 
               <Button
@@ -568,6 +655,62 @@ export function PresentationGenerator({ onThemeChange }) {
               >
                 Apply Parameters
               </Button>
+            </motion.div>
+          )}
+
+          {/* Templates Drawer */}
+          {activeMode === 'templates' && (
+            <motion.div
+              key="templates"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25 }}
+              className="w-full flex flex-col items-center gap-6"
+            >
+              <div className="text-left w-full border-b border-border/80 pb-4">
+                <h2 className="text-xl font-bold text-foreground">Start from a Template</h2>
+                <span className="text-xs text-muted-foreground font-medium">Instant decks you can edit or redesign with AI</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+                {DECK_TEMPLATES.map((tpl) => {
+                  const tTheme = themes.find((t) => t.id === tpl.themeId);
+                  return (
+                    <button
+                      key={tpl.id}
+                      onClick={() => handleUseTemplate(tpl)}
+                      className="bg-sidebar-accent border border-border/80 rounded-2xl p-4 text-left cursor-pointer hover:border-foreground/30 hover:shadow-md transition-all flex flex-col gap-3 group"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] font-bold px-2 py-1 rounded-lg border border-border text-muted-foreground uppercase tracking-wider">
+                            {tpl.category}
+                          </span>
+                          <span className="text-[9px] font-bold px-2 py-1 rounded-lg border border-border text-muted-foreground">
+                            {tpl.slides.length} slides
+                          </span>
+                        </div>
+                        <div className="flex gap-0.5">
+                          <div className="w-3.5 h-3.5 rounded-full border border-white" style={{ backgroundColor: tTheme?.colors.primary }} />
+                          <div className="w-3.5 h-3.5 rounded-full border border-white" style={{ backgroundColor: tTheme?.colors.accent }} />
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-foreground text-base group-hover:text-orange-500 transition-colors">{tpl.name}</h3>
+                        <p className="text-muted-foreground text-xs mt-1 leading-relaxed">{tpl.description}</p>
+                      </div>
+                      <div className="flex items-center justify-between mt-auto">
+                        <span className="text-2xs uppercase tracking-wider text-muted-foreground">{tTheme?.name || tpl.themeId}</span>
+                        <span className="text-xs font-bold text-orange-500 flex items-center gap-1">
+                          <LayoutTemplate className="w-3.5 h-3.5" />
+                          Use template
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </motion.div>
           )}
 

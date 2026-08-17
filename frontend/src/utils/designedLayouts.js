@@ -136,11 +136,11 @@ export function computeSlideLayout(slideData, theme, meta) {
 
   let desc;
   if (builder[layout]) {
-    desc = wrap(builder[layout](), layout, theme, meta);
+    desc = wrap(roles, builder[layout](), layout, theme, meta);
   } else {
     desc = hasFgImage
-      ? wrap(modern(roles, theme, background), "modern", theme, meta)
-      : wrap(contentOnly(roles, theme, background), "content-only", theme, meta);
+      ? wrap(roles, modern(roles, theme, background), "modern", theme, meta)
+      : wrap(roles, contentOnly(roles, theme, background), "content-only", theme, meta);
   }
 
   // User moves/sizes from the design-aware editor win over the computed layout.
@@ -430,7 +430,8 @@ export function deleteSlideRoleBullet(slide, index) {
   return next;
 }
 
-function wrap(layout, name, theme, meta) {
+function wrap(roles, layout, name, theme, meta) {
+  const decor = buildDecor(roles, theme, meta, name);
   return {
     layout: name,
     accentBar: theme.primary,
@@ -438,7 +439,101 @@ function wrap(layout, name, theme, meta) {
       brand: "SlideOS",
       page: `${meta.index + 1} of ${meta.total}`,
     },
+    ...(decor ? { decor } : {}),
     ...layout,
+  };
+}
+
+// ------------------------------------------------------------ decorative layer
+
+// Layouts that carry the decorative layer. Title/section-divider slides are
+// already image-heavy, so they stay minimal.
+const DECOR_ELIGIBLE = new Set(["content-only", "modern", "two-column", "big-stat"]);
+
+// Keyword -> lucide icon name, derived deterministically from the slide's own
+// content so the same slide always renders the same icon (one source of truth,
+// no schema or backend change).
+const ICON_RULES = [
+  { re: /\b(growth|grow|trend|scale|revenue|market|sales|expand)\b/i, icon: "TrendingUp" },
+  { re: /\b(team|people|culture|staff|employee|collaborat|workforce)\b/i, icon: "Users" },
+  { re: /\b(learn|train|teach|education|course|workshop|student|lesson)\b/i, icon: "GraduationCap" },
+  { re: /\b(launch|product|release|intro|feature)\b/i, icon: "Rocket" },
+  { re: /\b(problem|challenge|risk|issue|pain|obstacle)\b/i, icon: "TriangleAlert" },
+  { re: /\b(security|secure|safety|privacy|protect)\b/i, icon: "ShieldCheck" },
+  { re: /\b(budget|finance|cost|money|invest|fund|profit)\b/i, icon: "Wallet" },
+  { re: /\b(idea|innov|vision|future|dream)\b/i, icon: "Lightbulb" },
+  { re: /\b(success|win|goal|achiev|result|impact|value)\b/i, icon: "Target" },
+  { re: /\b(roadmap|plan|strategy|process|timeline|milestone)\b/i, icon: "Map" },
+  { re: /\b(research|data|report|analysis|survey|metrics|insight|finding)\b/i, icon: "ChartColumn" },
+];
+
+export function pickIconForRoles(roles) {
+  const haystack = [roles?.heading, ...(roles?.bullets || [])]
+    .filter((t) => t && String(t).trim())
+    .join(" ");
+  for (const rule of ICON_RULES) {
+    if (rule.re.test(haystack)) return rule.icon;
+  }
+  return "Sparkles";
+}
+
+// Accent divider sits in the gap between each layout's heading and its body.
+const DECOR_DIVIDER_Y = {
+  "content-only": 1.38,
+  modern: 1.33,
+  "two-column": 1.38,
+  "big-stat": 2.85,
+};
+
+// Decor positions are PPTX-native inches/pt, matching every other block the
+// design engine emits, so web and PowerPoint stay pixel-consistent.
+function buildDecor(roles, theme, meta, layoutName) {
+  if (!DECOR_ELIGIBLE.has(layoutName)) return null;
+  const accent = normalizeHex(theme.primary || "F97316");
+  const numeral = String(meta.index + 1).padStart(2, "0");
+  const chip = {
+    x: 8.7,
+    y: 0.26,
+    w: 0.62,
+    h: 0.62,
+    fill: theme.surface || "F5F5F5",
+    border: theme.border || "E8E8F0",
+  };
+
+  return {
+    shapes: [
+      {
+        type: "ellipse",
+        x: 7.6,
+        y: 0.5,
+        w: 2.4,
+        h: 3.0,
+        fill: accent,
+        opacity: 0.07,
+      },
+    ],
+    watermark: {
+      text: numeral,
+      x: 7.0,
+      y: 0.12,
+      w: 2.6,
+      h: 1.5,
+      size: 120,
+      color: accent,
+      opacity: 0.06,
+    },
+    divider: {
+      x: MARGIN_LEFT,
+      y: DECOR_DIVIDER_Y[layoutName],
+      w: 1.4,
+      h: 0.025,
+      color: accent,
+    },
+    icon: {
+      name: pickIconForRoles(roles),
+      color: accent,
+      chip,
+    },
   };
 }
 

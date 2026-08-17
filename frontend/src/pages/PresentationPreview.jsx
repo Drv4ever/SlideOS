@@ -1,20 +1,23 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  ArrowLeft, 
-  Play, 
-  Save, 
-  Plus, 
-  Trash2, 
-  X, 
+import {
+  ArrowLeft,
+  Play,
+  Save,
+  Plus,
+  Trash2,
+  X,
   PlusCircle,
-  Loader2
+  Loader2,
+  Sparkles,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "../components/ui/button";
 import { updatePresentation } from "../services/presentationService";
 import { normalizePresentation, CURATED_LOOKUP } from "../utils/slideModel";
 import { computeSlideLayout, toOutlineSlide, updateSlideRole, addSlideRoleBullet, deleteSlideRoleBullet } from "../utils/designedLayouts";
+import { remixDeck, remixSlide } from "../utils/remix";
 import SlideStage from "../components/SlideStage";
 
 const themePalette = CURATED_LOOKUP;
@@ -39,6 +42,8 @@ const SlideCard = memo(function SlideCard({
   onAddBullet,
   onDeleteBullet,
   onDeleteSlide,
+  onRemix,
+  remixing,
 }) {
   // Shared pipeline: the same layout engine Present/Export use, directly on the
   // slide data — no intermediate template conversion, one source of truth.
@@ -76,14 +81,28 @@ const SlideCard = memo(function SlideCard({
           )}
         </div>
 
-        {/* Delete Slide Button */}
-        <button
-          onClick={() => onDeleteSlide(slideIndex)}
-          className="text-muted-foreground/70 hover:text-red-500 hover:bg-destructive/10 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
-          title="Delete slide"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        {/* Remix + Delete Slide Buttons */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => onRemix(slideIndex)}
+            disabled={remixing}
+            className="text-muted-foreground/70 hover:text-orange-500 hover:bg-orange-500/10 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-wait"
+            title="Redesign this slide with AI"
+          >
+            {remixing ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4" />
+            )}
+          </button>
+          <button
+            onClick={() => onDeleteSlide(slideIndex)}
+            className="text-muted-foreground/70 hover:text-red-500 hover:bg-destructive/10 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+            title="Delete slide"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Designed slide preview — same rendering engine as Present/Export */}
@@ -207,6 +226,8 @@ export default function PresentationPreview() {
   );
   const [title, setTitle] = useState(normalized.title);
   const [isSaving, setIsSaving] = useState(false);
+  const [remixingDeck, setRemixingDeck] = useState(false);
+  const [remixingIndex, setRemixingIndex] = useState(null);
 
   // Sync title from state changes if any
   useEffect(() => {
@@ -274,6 +295,51 @@ export default function PresentationPreview() {
   const deleteSlide = useCallback((index) => {
     setSlides((prev) => prev.filter((_, i) => i !== index));
   }, []);
+
+  // Redesign the entire deck: same content, fresh layout + copy from the LLM.
+  const handleRemixDeck = useCallback(async () => {
+    if (remixingDeck) return;
+    setRemixingDeck(true);
+    try {
+      const remixed = await remixDeck({
+        slides,
+        themeId,
+        textAmount,
+      });
+      setSlides(remixed);
+      toast.success("Deck redesigned — new layout applied");
+    } catch (error) {
+      console.error(error);
+      toast.error(error.message || "Failed to redesign deck");
+    } finally {
+      setRemixingDeck(false);
+    }
+  }, [remixingDeck, slides, themeId, textAmount]);
+
+  // Redesign a single slide in place, keeping the rest of the deck untouched.
+  const handleRemixSlide = useCallback(
+    async (index) => {
+      if (remixingIndex !== null) return;
+      setRemixingIndex(index);
+      try {
+        const remixed = await remixSlide({
+          slide: slides[index],
+          themeId,
+          textAmount,
+        });
+        setSlides((prev) =>
+          prev.map((s, i) => (i === index ? remixed : s))
+        );
+        toast.success("Slide redesigned");
+      } catch (error) {
+        console.error(error);
+        toast.error(error.message || "Failed to redesign slide");
+      } finally {
+        setRemixingIndex(null);
+      }
+    },
+    [remixingIndex, slides, themeId, textAmount]
+  );
 
   const handleSaveChanges = async () => {
     if (!presentationId) {
@@ -352,6 +418,20 @@ export default function PresentationPreview() {
         {/* Right: Actions */}
         <div className="flex items-center gap-2 shrink-0 pr-1">
           <Button
+            variant="ghost"
+            onClick={handleRemixDeck}
+            disabled={remixingDeck || isSaving}
+            className="flex items-center gap-1.5 cursor-pointer h-9 px-3 rounded-lg text-sm text-orange-500 hover:text-orange-600 hover:bg-orange-500/10"
+          >
+            {remixingDeck ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4" />
+            )}
+            <span>{remixingDeck ? "Redesigning..." : "Redesign deck"}</span>
+          </Button>
+
+          <Button
             variant="destructive"
             onClick={handleSaveChanges}
             disabled={!presentationId || isSaving}
@@ -402,6 +482,8 @@ export default function PresentationPreview() {
               onAddBullet={addBullet}
               onDeleteBullet={deleteBullet}
               onDeleteSlide={deleteSlide}
+              onRemix={handleRemixSlide}
+              remixing={remixingIndex === slideIndex}
             />
           ))}
         </AnimatePresence>

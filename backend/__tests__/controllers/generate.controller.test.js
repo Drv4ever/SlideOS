@@ -131,9 +131,50 @@ describe("generatePresentation controller", () => {
         },
       });
     });
-  });
+});
 
-  describe("validation errors", () => {
+    test("should pass remix mode through to the generation service", async () => {
+      mockReq.body = {
+        ...mockReq.body,
+        mode: "remix",
+      };
+      generateWithGroq.mockResolvedValue({
+        title: "Redesigned",
+        theme: "cornflower",
+        slides: [
+          { slideNumber: 1, heading: "New", content: ["A"], imageKeyword: "kw", layout: "title-slide" },
+        ],
+      });
+      fetchSlideImages.mockResolvedValue([null]);
+
+      await generatePresentation(mockReq, mockRes);
+
+      expect(generateWithGroq).toHaveBeenCalledWith(
+        expect.objectContaining({ mode: "remix" })
+      );
+      expect(mockRes.status).toHaveBeenCalledWith(200);
+      expect(mockRes.json).toHaveBeenCalledWith({
+        success: true,
+        data: expect.objectContaining({ title: "Redesigned" }),
+      });
+    });
+
+    test("should default mode to generate when not provided", async () => {
+      generateWithGroq.mockResolvedValue({
+        title: "Test Presentation",
+        theme: "cornflower",
+        slides: [],
+      });
+      fetchSlideImages.mockResolvedValue([]);
+
+      await generatePresentation(mockReq, mockRes);
+
+      expect(generateWithGroq).toHaveBeenCalledWith(
+        expect.objectContaining({ mode: "generate" })
+      );
+    });
+
+    describe("validation errors", () => {
     test("should return 400 when prompt is missing", async () => {
       mockReq.body = { slides: 5, textAmount: "detailed", theme: "cornflower" };
 

@@ -8,6 +8,22 @@
 // to vertically CENTERING text — oversized boxes used to push glyphs down onto
 // the element beneath them, which looked like duplicated/overlapping text.
 
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import {
+  TrendingUp,
+  Users,
+  GraduationCap,
+  Rocket,
+  ChartColumn,
+  TriangleAlert,
+  Lightbulb,
+  Wallet,
+  ShieldCheck,
+  Target,
+  Map,
+  Sparkles,
+} from "lucide-react";
 import {
   computeSlideLayout,
   SLIDE_W,
@@ -15,6 +31,23 @@ import {
   normalizeHex,
   interpolateColor,
 } from "./designedLayouts";
+
+// The decor icons the design engine emits (pickIconForRoles). Named imports keep
+// tree-shaking intact — a namespace import would pull in all ~1.5k icons.
+const DECOR_ICONS = {
+  TrendingUp,
+  Users,
+  GraduationCap,
+  Rocket,
+  ChartColumn,
+  TriangleAlert,
+  Lightbulb,
+  Wallet,
+  ShieldCheck,
+  Target,
+  Map,
+  Sparkles,
+};
 
 export const PPT_STYLE = "MODERN";
 
@@ -114,6 +147,118 @@ function addImageCover(slide, src, x, y, w, h) {
   slide.addImage(opts);
 }
 
+// Rasterize a lucide icon to a PNG data URL so PowerPoint can embed it as an
+// image. Pure vector paths render via renderToStaticMarkup -> canvas, so it
+// works offline and never taints the canvas (no cross-origin fetch).
+async function rasterizeIcon(name, color, px = 64) {
+  const Icon = DECOR_ICONS[name];
+  if (!Icon) return null;
+  try {
+    const svg = renderToStaticMarkup(
+      React.createElement(Icon, { size: px, color, strokeWidth: 2 })
+    );
+    const svgData =
+      "data:image/svg+xml;base64," +
+      btoa(unescape(encodeURIComponent(svg)));
+    const img = await loadImage(svgData);
+    if (!img || !img.naturalWidth) return null;
+    const canvas = document.createElement("canvas");
+    canvas.width = px;
+    canvas.height = px;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0, px, px);
+    return canvas.toDataURL("image/png");
+  } catch (err) {
+    console.warn("Icon rasterize failed, exporting chip without icon:", err);
+    return null;
+  }
+}
+
+// Decorative layer export: soft blob, watermark numeral and accent divider.
+// Drawn BEFORE the content blocks so they sit behind the text/cards, matching
+// SlideStage's z-order. The heading icon chip is exported last (see
+// exportSlideWithElements) so it stays on top like the on-screen render.
+async function exportDecor(slide, desc, theme) {
+  const decor = desc.decor;
+  if (!decor) return;
+
+  // Watermark numeral (behind content)
+  if (decor.watermark) {
+    const w = decor.watermark;
+    slide.addText(String(w.text), {
+      x: w.x,
+      y: w.y,
+      w: w.w,
+      h: w.h,
+      fontSize: w.size,
+      bold: true,
+      color: normalizeHex(w.color),
+      transparency: Math.round((1 - w.opacity) * 100),
+      fontFace: theme.headingFont,
+      align: "right",
+      valign: "top",
+      fit: "shrink",
+      decor: "watermark",
+    });
+  }
+
+  // Soft corner blob (behind content)
+  for (const s of decor.shapes || []) {
+    slide.addShape("ellipse", {
+      x: s.x,
+      y: s.y,
+      w: s.w,
+      h: s.h,
+      fill: {
+        color: normalizeHex(s.fill),
+        transparency: Math.round((1 - s.opacity) * 100),
+      },
+      line: { type: "none", color: "FFFFFF00" },
+    });
+  }
+
+  // Accent divider under the heading
+  if (decor.divider) {
+    const d = decor.divider;
+    slide.addShape("rect", {
+      x: d.x,
+      y: d.y,
+      w: d.w,
+      h: d.h,
+      fill: { color: normalizeHex(d.color) },
+      line: { type: "none", color: "FFFFFF00" },
+    });
+  }
+}
+
+// Heading icon chip (exported on top of the content, like SlideStage).
+async function exportDecorChip(slide, desc) {
+  const decor = desc.decor;
+  if (!decor?.icon) return;
+  const chip = decor.icon.chip;
+  slide.addShape("roundRect", {
+    x: chip.x,
+    y: chip.y,
+    w: chip.w,
+    h: chip.h,
+    fill: { color: normalizeHex(chip.fill) },
+    line: { color: normalizeHex(chip.border), width: 0.5 },
+    rectRadius: 0.12,
+  });
+  const png = await rasterizeIcon(decor.icon.name, decor.icon.color, 64);
+  if (png) {
+    const inset = 0.11;
+    const iconIn = chip.w - inset * 2;
+    slide.addImage({
+      data: png,
+      x: chip.x + inset,
+      y: chip.y + inset,
+      w: iconIn,
+      h: iconIn,
+    });
+  }
+}
+
 // Main entry: render one slide. Signature kept for the caller.
 export async function exportSlideWithElements(slide, slideData, themeColors, bodyFont, headingFont, meta = { index: 0, total: 1 }) {
   const theme = {
@@ -137,6 +282,9 @@ export async function exportSlideWithElements(slide, slideData, themeColors, bod
       slide.background = { color: interpolateColor(stops[0], stops[1], 0.5) };
     }
   }
+
+  // 1b) Decorative background layer (watermark, blob, divider — behind content)
+  await exportDecor(slide, desc, theme);
 
   // 2) Cover image (full-bleed or right panel)
   if (desc.image && desc.image.src) {
@@ -166,10 +314,7 @@ export async function exportSlideWithElements(slide, slideData, themeColors, bod
   // 4) Text blocks (top-aligned — prevents the "doubled/overlap" look)
   for (const t of desc.texts || []) {
     if (!t.text || !String(t.text).trim()) continue;
-    const colorOption =
-      t.opacity !== undefined && t.hexColor
-        ? { color: t.hexColor, transparency: Math.round((1 - t.opacity) * 100) }
-        : normalizeHex(t.hexColor || t.color || theme.text);
+    const hasOpacity = t.opacity !== undefined && t.hexColor;
     slide.addText(String(t.text), {
       x: t.x,
       y: t.y,
@@ -177,7 +322,10 @@ export async function exportSlideWithElements(slide, slideData, themeColors, bod
       h: t.h,
       fontSize: t.size,
       bold: t.bold || false,
-      color: colorOption,
+      color: normalizeHex(t.hexColor || t.color || theme.text),
+      ...(hasOpacity
+        ? { transparency: Math.round((1 - t.opacity) * 100) }
+        : {}),
       fontFace: t.font || theme.bodyFont,
       align: t.align || "left",
       valign: "top",
@@ -260,4 +408,7 @@ export async function exportSlideWithElements(slide, slideData, themeColors, bod
       yCursor += 0.62;
     }
   }
+
+  // 8) Heading icon chip (on top of content, matching SlideStage z-order)
+  await exportDecorChip(slide, desc);
 }

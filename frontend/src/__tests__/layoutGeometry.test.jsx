@@ -373,11 +373,13 @@ describe("PPTX export path (shrink-to-fit + no overlap)", () => {
         expect(t.fit).toBe("shrink");
       });
 
-      // No two text frames may overlap in inches.
-      for (let i = 0; i < calls.texts.length; i++) {
-        const a = calls.texts[i];
-        for (let j = i + 1; j < calls.texts.length; j++) {
-          const b = calls.texts[j];
+      // No two CONTENT text frames may overlap in inches. Decorative frames
+      // (the watermark numeral) are intentionally layered behind the content.
+      const contentFrames = calls.texts.filter((t) => t.decor !== "watermark");
+      for (let i = 0; i < contentFrames.length; i++) {
+        const a = contentFrames[i];
+        for (let j = i + 1; j < contentFrames.length; j++) {
+          const b = contentFrames[j];
           const hit =
             a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
           if (hit) {

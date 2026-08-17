@@ -16,7 +16,7 @@ export const generatePresentation = async (req, res) => {
     let presentation;
 
     try {
-      presentation = await generateWithGroq(data);
+      presentation = await generateWithGroq({ ...data, mode: data.mode || "generate" });
     } catch (aiError) {
       console.error("Groq API error:", aiError.message);
       const errMsg = aiError.message;

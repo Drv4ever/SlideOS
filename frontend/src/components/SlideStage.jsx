@@ -1,4 +1,35 @@
 import { SLIDE_W, SLIDE_H } from "../utils/designedLayouts";
+import {
+  TrendingUp,
+  Users,
+  GraduationCap,
+  Rocket,
+  ChartColumn,
+  TriangleAlert,
+  Lightbulb,
+  Wallet,
+  ShieldCheck,
+  Target,
+  Map,
+  Sparkles,
+} from "lucide-react";
+
+// Decor icons by name (the names pickIconForRoles emits). Kept local so the
+// shared renderer never depends on the layout engine's icon registry.
+const ICON_REGISTRY = {
+  TrendingUp,
+  Users,
+  GraduationCap,
+  Rocket,
+  ChartColumn,
+  TriangleAlert,
+  Lightbulb,
+  Wallet,
+  ShieldCheck,
+  Target,
+  Map,
+  Sparkles,
+};
 
 // Shared designed slide renderer (block design).
 // Renders the design description from computeSlideLayout on a 10 x 5.625 in
@@ -31,6 +62,100 @@ export function SlideStage({ desc, animating, accentFont, bodyFont }) {
         className="absolute inset-0"
         style={{ background: desc.background.css }}
       />
+
+      {/* Decorative layer: soft blob + watermark numeral (behind content) */}
+      {desc.decor?.shapes?.map((s, i) => (
+        <div
+          key={`decor-shape-${i}`}
+          data-decor="blob"
+          className="absolute pointer-events-none"
+          style={{
+            left: `${pctX(s.x)}%`,
+            top: `${pctY(s.y)}%`,
+            width: `${pctW(s.w)}%`,
+            height: `${pctH(s.h)}%`,
+            borderRadius: "50%",
+            background: s.fill,
+            opacity: s.opacity,
+          }}
+        />
+      ))}
+      {desc.decor?.watermark && (
+        <div
+          data-decor="watermark"
+          className="absolute pointer-events-none select-none"
+          style={{
+            left: `${pctX(desc.decor.watermark.x)}%`,
+            top: `${pctY(desc.decor.watermark.y)}%`,
+            width: `${pctW(desc.decor.watermark.w)}%`,
+            height: `${pctH(desc.decor.watermark.h)}%`,
+            fontSize: pt(desc.decor.watermark.size),
+            fontWeight: 700,
+            color: desc.decor.watermark.color,
+            opacity: desc.decor.watermark.opacity,
+            fontFamily: `${accentFont}, sans-serif`,
+            lineHeight: 1,
+            textAlign: "right",
+            letterSpacing: "0.02em",
+          }}
+        >
+          {desc.decor.watermark.text}
+        </div>
+      )}
+
+      {/* Accent divider under the heading */}
+      {desc.decor?.divider && (
+        <div
+          data-decor="divider"
+          className="absolute z-10 pointer-events-none"
+          style={{
+            left: `${pctX(desc.decor.divider.x)}%`,
+            top: `${pctY(desc.decor.divider.y)}%`,
+            width: `${pctW(desc.decor.divider.w)}%`,
+            height: `${pctH(desc.decor.divider.h)}%`,
+            background: desc.decor.divider.color,
+          }}
+        />
+      )}
+
+      {/* Heading icon chip (top-right, layered over the blob) */}
+      {desc.decor?.icon &&
+        (() => {
+          const chip = desc.decor.icon.chip;
+          const IconComp = ICON_REGISTRY[desc.decor.icon.name];
+          const inset = 0.11;
+          const iconW = chip.w - inset * 2;
+          const iconH = chip.h - inset * 2;
+          return (
+            <>
+              <div
+                className="absolute z-10 pointer-events-none rounded-lg"
+                style={{
+                  left: `${pctX(chip.x)}%`,
+                  top: `${pctY(chip.y)}%`,
+                  width: `${pctW(chip.w)}%`,
+                  height: `${pctH(chip.h)}%`,
+                  background: chip.fill,
+                  border: `1px solid ${chip.border}`,
+                }}
+              />
+              {IconComp && (
+                <div
+                  className="absolute z-10 flex items-center justify-center pointer-events-none"
+                  style={{
+                    left: `${pctX(chip.x + inset)}%`,
+                    top: `${pctY(chip.y + inset)}%`,
+                    width: `${pctW(iconW)}%`,
+                    height: `${pctH(iconH)}%`,
+                    color: desc.decor.icon.color,
+                  }}
+                >
+                  <IconComp style={{ width: "100%", height: "100%" }} strokeWidth={2} />
+                </div>
+              )}
+            </>
+          );
+        })()}
 
       {/* Accent bar (matches PPTX master) */}
       <div
