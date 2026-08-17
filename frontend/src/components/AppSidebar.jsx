@@ -205,7 +205,7 @@ export function AppSidebar({ onLogout }) {
         <SidebarSeparator />
 
         {/* Navigation */}
-        <SidebarGroup className="bg-sidebar-accent/50 rounded-xl px-0 mx-0 w-auto">
+        <SidebarGroup className="bg-sidebar-accent/50 rounded-xl px-0 mx-0 w-auto group-data-[collapsible=icon]:px-2">
           <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -238,7 +238,7 @@ export function AppSidebar({ onLogout }) {
         <SidebarSeparator />
 
         {/* Preset Engines */}
-        <SidebarGroup className="bg-sidebar-accent/50 rounded-xl px-0 mx-0 w-auto">
+        <SidebarGroup className="bg-sidebar-accent/50 rounded-xl px-0 mx-0 w-auto group-data-[collapsible=icon]:px-2">
           <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">Engines</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>

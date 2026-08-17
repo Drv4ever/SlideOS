@@ -9,9 +9,11 @@ export function normalizePresentation(data, fallbackThemeId = "cornflower") {
 
   const rawSlides = Array.isArray(data.slides) ? data.slides : [];
   const normalizedSlides = rawSlides.map((slide, i) => {
+    const id = slide.id || slide._id || `slide-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`;
     // New rich format with elements array (from editor)
     if (Array.isArray(slide.elements)) {
       return {
+        id,
         layout: slide.layout || LEGACY_LAYOUTS[i % LEGACY_LAYOUTS.length],
         heading: slide.heading,
         image: slide.image,
@@ -21,6 +23,7 @@ export function normalizePresentation(data, fallbackThemeId = "cornflower") {
     // LLM-generated format with imageKeyword, layout, image
     const content = Array.isArray(slide.content) ? slide.content : [];
     return {
+      id,
       layout: slide.layout || LEGACY_LAYOUTS[i % LEGACY_LAYOUTS.length],
       heading: slide.heading || `Slide ${i + 1}`,
       content: content,

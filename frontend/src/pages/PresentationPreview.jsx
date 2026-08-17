@@ -101,6 +101,7 @@ export default function PresentationPreview() {
     setSlides([
       ...slides,
       {
+        id: `slide-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         layout: "header",
         heading: "New Slide Title",
         elements: [
@@ -228,15 +229,16 @@ export default function PresentationPreview() {
 
       {/* Slide Cards Canvas */}
       <div className="flex-1 flex flex-col gap-6 max-w-3xl mx-auto w-full pb-16">
-        <AnimatePresence initial={false}>
+        <AnimatePresence initial={false} mode="popLayout">
           {slides.map((slide, slideIndex) => (
             <motion.div
-              key={slideIndex}
+              key={slide.id || slideIndex}
+              layout
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96 }}
-              transition={{ duration: 0.25 }}
-              className="bg-sidebar rounded-2xl border border-border/70 p-6 flex gap-5 items-start shadow-[0_16px_40px_-12px_rgba(15,23,42,0.06),0_4px_12px_rgba(15,23,42,0.02)] relative hover:border-border hover:shadow-[0_20px_48px_-10px_rgba(15,23,42,0.1),0_4px_16px_rgba(15,23,42,0.03)] transition-all group"
+              exit={{ opacity: 0, scale: 0.96, height: 0, marginBottom: 0 }}
+              transition={{ duration: 0.25, layout: { duration: 0.3 } }}
+              className="bg-sidebar rounded-2xl border border-border/70 p-6 flex gap-5 items-center shadow-[0_16px_40px_-12px_rgba(15,23,42,0.06),0_4px_12px_rgba(15,23,42,0.02)] relative hover:border-border hover:shadow-[0_20px_48px_-10px_rgba(15,23,42,0.1),0_4px_16px_rgba(15,23,42,0.03)] transition-all group"
             >
                {/* Slide Number Bubble */}
                <div className="w-9 h-9 rounded-xl bg-muted border border-border text-muted-foreground flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
@@ -245,7 +247,7 @@ export default function PresentationPreview() {
 
                {/* Stock Image Thumbnail */}
                {slide.image?.url && (
-                 <div className="w-20 h-20 rounded-lg overflow-hidden border border-border shrink-0 relative group/image">
+                 <div className="w-20 h-20 aspect-square rounded-lg overflow-hidden border border-border shrink-0 relative group/image">
                    <img
                      src={slide.image.thumb || slide.image.url}
                      alt={slide.image.alt || slide.imageKeyword || "slide visual"}
@@ -259,7 +261,7 @@ export default function PresentationPreview() {
 
                {/* Layout Badge */}
                {slide.layout && (
-                 <div className="shrink-0 flex items-center">
+                 <div className="shrink-0 flex items-center self-start mt-3">
                    <span className="text-[9px] font-bold px-2 py-1 bg-muted/50 text-muted-foreground rounded-lg border border-border">
                      {slide.layout.replace(/-/g, " ")}
                    </span>
