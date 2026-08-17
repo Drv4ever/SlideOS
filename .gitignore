@@ -1,5 +1,6 @@
 node_modules/
 frontend/dist/
+backend/.mongodb/
 EXCALIDRAW_IMPLEMENTATION.md
 EXCALIDRAW_STYLE.md
 .claude/
