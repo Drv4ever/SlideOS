@@ -1,0 +1,211 @@
+import { SLIDE_W, SLIDE_H } from "../utils/designedLayouts";
+
+// Shared designed slide renderer (block design).
+// Renders the design description from computeSlideLayout on a 10 x 5.625 in
+// slide: accent bar, serif headings, cards, image panels, big stat, footers.
+// Web maps inch->percentage and pt->cqw so the stage scales 1:1 to the
+// exported PowerPoint file. Text is top-aligned / modest box heights, so
+// nothing double-renders or bleeds into the block below it (PowerPoint centers
+// vertically by default).
+//
+// REQUIRES a parent container with `containerType: "inline-size"` and a 16:9
+// aspect ratio (cqw units scale against the container width).
+export function SlideStage({ desc, animating, accentFont, bodyFont }) {
+  const pctX = (x) => (x / SLIDE_W) * 100;
+  const pctY = (y) => (y / SLIDE_H) * 100;
+  const pctW = (w) => (w / SLIDE_W) * 100;
+  const pctH = (h) => (h / SLIDE_H) * 100;
+  // 1pt = 1/7.2 % of the 720pt-wide slide -> cqw (relative to stage container)
+  const pt = (size) => `${(size / 7.2).toFixed(3)}cqw`;
+  const anim = (i = 0) => ({
+    opacity: animating ? 0 : 1,
+    transform: animating ? "translateY(8px)" : "translateY(0px)",
+    transition: "opacity 420ms ease, transform 420ms ease",
+    transitionDelay: `${i * 60}ms`,
+  });
+
+  return (
+    <>
+      {/* Slide background (color / gradient / transparent for full-bleed images) */}
+      <div
+        className="absolute inset-0"
+        style={{ background: desc.background.css }}
+      />
+
+      {/* Accent bar (matches PPTX master) */}
+      <div
+        className="absolute top-0 left-0 right-0 z-10 pointer-events-none"
+        style={{ height: `${pctH(0.14)}%`, background: desc.accentBar }}
+      />
+
+      {/* Full-bleed background image + dark overlay (section dividers) */}
+      {desc.image?.mode === "fullbleed" && (
+        <img
+          src={desc.image.src}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+        />
+      )}
+      {desc.overlay && (
+        <div
+          className="absolute"
+          style={{
+            left: `${pctX(desc.overlay.x)}%`,
+            top: `${pctY(desc.overlay.y)}%`,
+            width: `${pctW(desc.overlay.w)}%`,
+            height: `${pctH(desc.overlay.h)}%`,
+            background: desc.overlay.css,
+          }}
+        />
+      )}
+
+      {/* Right image panel (cover) */}
+      {desc.image?.mode === "panel" && (
+        <img
+          src={desc.image.src}
+          alt=""
+          className="absolute object-cover pointer-events-none"
+          style={{
+            left: `${pctX(desc.image.x)}%`,
+            top: `${pctY(desc.image.y)}%`,
+            width: `${pctW(desc.image.w)}%`,
+            height: `${pctH(desc.image.h)}%`,
+          }}
+        />
+      )}
+
+      {/* Text blocks (top-aligned, modest heights) */}
+      {desc.texts?.map((t, i) => (
+        <div
+          key={`t-${i}`}
+          className="absolute select-text"
+          style={{
+            left: `${pctX(t.x)}%`,
+            top: `${pctY(t.y)}%`,
+            width: `${pctW(t.w)}%`,
+            height: `${pctH(t.h)}%`,
+            fontSize: pt(t.size),
+            fontWeight: t.bold ? 700 : 400,
+            color: t.color,
+            fontFamily: `${t.font || bodyFont}, sans-serif`,
+            textAlign: t.align || "left",
+            lineHeight: 1.15,
+            overflow: "hidden",
+            overflowWrap: "break-word",
+            ...anim(i),
+          }}
+        >
+          {t.text}
+        </div>
+      ))}
+
+      {/* Cards */}
+      {desc.cards?.map((c, i) => (
+        <div
+          key={`c-${i}`}
+          className="absolute rounded-lg border overflow-hidden"
+          style={{
+            left: `${pctX(c.x)}%`,
+            top: `${pctY(c.y)}%`,
+            width: `${pctW(c.w)}%`,
+            height: `${pctH(c.h)}%`,
+            background: "#F8F9FA",
+            borderColor: "#E8E8F0",
+            padding: `${pctH(0.12)}% ${pctW(0.18)}%`,
+            ...anim(i),
+          }}
+        >
+          <div
+            style={{
+              fontSize: pt(c.titleSize || 15),
+              fontWeight: 700,
+              fontFamily: `${accentFont}, sans-serif`,
+              color: "#111827",
+              lineHeight: 1.1,
+            }}
+          >
+            {c.title}
+          </div>
+          {c.body && (
+            <div
+              style={{
+                fontSize: pt(c.bodySize || 11),
+                fontFamily: `${bodyFont}, sans-serif`,
+                color: "#3A3A3A",
+                marginTop: `${pctH(0.05)}%`,
+                whiteSpace: "pre-wrap",
+                overflowWrap: "break-word",
+                lineHeight: 1.2,
+              }}
+            >
+              {c.body}
+            </div>
+          )}
+        </div>
+      ))}
+
+      {/* Bullet lists (content-only) */}
+      {desc.bullets?.map((b, i) => (
+        <div
+          key={`b-${i}`}
+          className="absolute"
+          style={{
+            left: `${pctX(b.x)}%`,
+            top: `${pctY(b.y)}%`,
+            width: `${pctW(b.w)}%`,
+            height: `${pctH(b.h)}%`,
+            fontSize: pt(b.size),
+            fontFamily: `${b.font || bodyFont}, sans-serif`,
+            color: b.color,
+            lineHeight: 1.2,
+            overflow: "hidden",
+            overflowWrap: "break-word",
+            ...anim(i),
+          }}
+        >
+          <span className="mr-2">•</span>
+          {b.text}
+        </div>
+      ))}
+
+      {/* Two-column bullet lists */}
+      {desc.columns?.map((col, ci) =>
+        (col.bullets || []).map((item, i) => (
+          <div
+            key={`col-${ci}-${i}`}
+            className="absolute"
+            style={{
+              left: `${pctX(col.x)}%`,
+              top: `${pctY(col.y + i * 0.62)}%`,
+              width: `${pctW(col.w)}%`,
+              height: `${pctH(0.5)}%`,
+              fontSize: pt(item.size || 17),
+              fontFamily: `${item.font || bodyFont}, sans-serif`,
+              color: item.color,
+              lineHeight: 1.2,
+              overflow: "hidden",
+              overflowWrap: "break-word",
+              ...anim(i),
+            }}
+          >
+            <span className="mr-2">•</span>
+            {item.text}
+          </div>
+        ))
+      )}
+
+      {/* Footer (matches PPTX master) */}
+      {desc.footer && (
+        <div
+          className="absolute left-0 right-0 bottom-0 flex items-center justify-between px-[3%] pb-[0.6%] z-10"
+          style={{ fontSize: pt(10), fontFamily: "Georgia, serif", color: "#94A3B8" }}
+        >
+          <span>{desc.footer.brand}</span>
+          <span>Slide {desc.footer.page}</span>
+        </div>
+      )}
+    </>
+  );
+}
+
+export default SlideStage;

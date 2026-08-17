@@ -115,7 +115,7 @@ function addImageCover(slide, src, x, y, w, h) {
 }
 
 // Main entry: render one slide. Signature kept for the caller.
-export async function exportSlideWithElements(slide, slideData, themeColors, bodyFont, headingFont) {
+export async function exportSlideWithElements(slide, slideData, themeColors, bodyFont, headingFont, meta = { index: 0, total: 1 }) {
   const theme = {
     primary: normalizeHex(themeColors.primary || "6366F1"),
     accent: normalizeHex(themeColors.accent || "818CF8"),
@@ -126,7 +126,6 @@ export async function exportSlideWithElements(slide, slideData, themeColors, bod
     bodyFont: bodyFont || "Arial",
   };
 
-  const meta = { index: 0, total: 1 };
   const desc = computeSlideLayout(slideData, theme, meta);
 
   // 1) Background
@@ -204,7 +203,7 @@ export async function exportSlideWithElements(slide, slideData, themeColors, bod
         w: c.w - 0.36,
         h: 0.34,
         fontFace: theme.headingFont,
-        fontSize: 15,
+        fontSize: c.titleSize || 15,
         bold: true,
         color: theme.text,
         valign: "top",
@@ -217,7 +216,7 @@ export async function exportSlideWithElements(slide, slideData, themeColors, bod
         y: c.y + 0.46,
         w: c.w - 0.36,
         h: c.h - 0.58,
-        fontSize: 11,
+        fontSize: c.bodySize || 11,
         color: normalizeHex("3A3A3A"),
         fontFace: theme.bodyFont,
         valign: "top",

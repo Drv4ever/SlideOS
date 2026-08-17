@@ -1,9 +1,7 @@
 ﻿import { useLocation, useNavigate } from "react-router-dom";
-import { useState, useRef, useEffect } from "react";
-import { Rnd } from "react-rnd";
+import { useState, useRef, useEffect, useMemo } from "react";
 import PptxGenJS from "pptxgenjs";
 import { updatePresentation } from "../services/presentationService";
-import { applyTemplate } from "../utils/templates";
 import { CURATED_LOOKUP } from "../utils/slideModel";
 import {
   defineMaster,
@@ -11,18 +9,17 @@ import {
 } from "../utils/pptxLayouts";
 import {
   computeSlideLayout,
-  SLIDE_W,
-  SLIDE_H,
+  toOutlineSlide,
+  updateSlideRole,
+  addSlideRoleBullet,
 } from "../utils/designedLayouts";
 import {
   Copy,
   Type,
   Image as ImageIcon,
-  Trash2,
   Download,
   Sparkles,
   Palette,
-  FileText,
   Play,
   X,
   ChevronLeft,
@@ -59,246 +56,31 @@ import {
   SidebarTrigger,
 } from "../components/ui/sidebar";
 
-// Designed presentation renderer (block design).
-// Renders the SAME design description as the PPTX export (computeSlideLayout on a
-// 10 x 5.625 in slide): accent bar, serif headings, cards, image panels, big
-// stat, footers. Web maps inch->percentage and pt->cqw so the stage scales 1:1
-// to the exported PowerPoint file. Text is top-aligned / modest box heights, so
-// nothing double-renders or bleeds into the block below it (PowerPoint centers
-// vertically by default).
-function DesignStage({ desc, animating, accentFont, bodyFont }) {
-  const pctX = (x) => (x / SLIDE_W) * 100;
-  const pctY = (y) => (y / SLIDE_H) * 100;
-  const pctW = (w) => (w / SLIDE_W) * 100;
-  const pctH = (h) => (h / SLIDE_H) * 100;
-  // 1pt = 1/7.2 % of the 720pt-wide slide -> cqw (relative to stage container)
-  const pt = (size) => `${(size / 7.2).toFixed(3)}cqw`;
-  const anim = (i = 0) => ({
-    opacity: animating ? 0 : 1,
-    transform: animating ? "translateY(8px)" : "translateY(0px)",
-    transition: "opacity 420ms ease, transform 420ms ease",
-    transitionDelay: `${i * 60}ms`,
-  });
+// Shared designed slide renderer — same engine as Present & PPTX export
+// (computeSlideLayout description -> HTML). Imported from the shared component
+// so the Editor/Preview, Present overlay, and export all render identically.
+import SlideStage from "../components/SlideStage";
 
-  return (
-    <>
-      {/* Slide background (color / gradient / transparent for full-bleed images) */}
-      <div
-        className="absolute inset-0"
-        style={{ background: desc.background.css }}
-      />
+// Design-aware editing canvas — renders the designed slide and overlays the
+// edit affordances (click/drag/double-click) that write back to slide roles.
+import DesignCanvas from "../components/DesignCanvas";
 
-      {/* Accent bar (matches PPTX master) */}
-      <div
-        className="absolute top-0 left-0 right-0 z-10 pointer-events-none"
-        style={{ height: `${pctH(0.14)}%`, background: desc.accentBar }}
-      />
-
-      {/* Full-bleed background image + dark overlay (section dividers) */}
-      {desc.image?.mode === "fullbleed" && (
-        <img
-          src={desc.image.src}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-        />
-      )}
-      {desc.overlay && (
-        <div
-          className="absolute"
-          style={{
-            left: `${pctX(desc.overlay.x)}%`,
-            top: `${pctY(desc.overlay.y)}%`,
-            width: `${pctW(desc.overlay.w)}%`,
-            height: `${pctH(desc.overlay.h)}%`,
-            background: desc.overlay.css,
-          }}
-        />
-      )}
-
-      {/* Right image panel (cover) */}
-      {desc.image?.mode === "panel" && (
-        <img
-          src={desc.image.src}
-          alt=""
-          className="absolute object-cover pointer-events-none"
-          style={{
-            left: `${pctX(desc.image.x)}%`,
-            top: `${pctY(desc.image.y)}%`,
-            width: `${pctW(desc.image.w)}%`,
-            height: `${pctH(desc.image.h)}%`,
-          }}
-        />
-      )}
-
-      {/* Text blocks (top-aligned, modest heights) */}
-      {desc.texts?.map((t, i) => (
-        <div
-          key={`t-${i}`}
-          className="absolute select-text"
-          style={{
-            left: `${pctX(t.x)}%`,
-            top: `${pctY(t.y)}%`,
-            width: `${pctW(t.w)}%`,
-            height: `${pctH(t.h)}%`,
-            fontSize: pt(t.size),
-            fontWeight: t.bold ? 700 : 400,
-            color: t.color,
-            fontFamily: `${t.font || bodyFont}, sans-serif`,
-            textAlign: t.align || "left",
-            lineHeight: 1.15,
-            overflow: "hidden",
-            ...anim(i),
-          }}
-        >
-          {t.text}
-        </div>
-      ))}
-
-      {/* Cards */}
-      {desc.cards?.map((c, i) => (
-        <div
-          key={`c-${i}`}
-          className="absolute rounded-lg border overflow-hidden"
-          style={{
-            left: `${pctX(c.x)}%`,
-            top: `${pctY(c.y)}%`,
-            width: `${pctW(c.w)}%`,
-            height: `${pctH(c.h)}%`,
-            background: "#F8F9FA",
-            borderColor: "#E8E8F0",
-            padding: `${pctH(0.12)}% ${pctW(0.18)}%`,
-            ...anim(i),
-          }}
-        >
-          <div
-            style={{
-              fontSize: pt(15),
-              fontWeight: 700,
-              fontFamily: `${accentFont}, sans-serif`,
-              color: "#111827",
-              lineHeight: 1.1,
-            }}
-          >
-            {c.title}
-          </div>
-          {c.body && (
-            <div
-              style={{
-                fontSize: pt(11),
-                fontFamily: `${bodyFont}, sans-serif`,
-                color: "#3A3A3A",
-                marginTop: `${pctH(0.05)}%`,
-                whiteSpace: "pre-wrap",
-                lineHeight: 1.2,
-              }}
-            >
-              {c.body}
-            </div>
-          )}
-        </div>
-      ))}
-
-      {/* Bullet lists (content-only) */}
-      {desc.bullets?.map((b, i) => (
-        <div
-          key={`b-${i}`}
-          className="absolute"
-          style={{
-            left: `${pctX(b.x)}%`,
-            top: `${pctY(b.y)}%`,
-            width: `${pctW(b.w)}%`,
-            height: `${pctH(b.h)}%`,
-            fontSize: pt(b.size),
-            fontFamily: `${b.font || bodyFont}, sans-serif`,
-            color: b.color,
-            lineHeight: 1.2,
-            overflow: "hidden",
-            ...anim(i),
-          }}
-        >
-          <span className="mr-2">•</span>
-          {b.text}
-        </div>
-      ))}
-
-      {/* Two-column bullet lists */}
-      {desc.columns?.map((col, ci) =>
-        (col.bullets || []).map((item, i) => (
-          <div
-            key={`col-${ci}-${i}`}
-            className="absolute"
-            style={{
-              left: `${pctX(col.x)}%`,
-              top: `${pctY(col.y + i * 0.62)}%`,
-              width: `${pctW(col.w)}%`,
-              height: `${pctH(0.5)}%`,
-              fontSize: pt(item.size || 17),
-              fontFamily: `${item.font || bodyFont}, sans-serif`,
-              color: item.color,
-              lineHeight: 1.2,
-              overflow: "hidden",
-              ...anim(i),
-            }}
-          >
-            <span className="mr-2">•</span>
-            {item.text}
-          </div>
-        ))
-      )}
-
-      {/* Footer (matches PPTX master) */}
-      {desc.footer && (
-        <div
-          className="absolute left-0 right-0 bottom-0 flex items-center justify-between px-[3%] pb-[0.6%] z-10"
-          style={{ fontSize: pt(10), fontFamily: "Georgia, serif", color: "#94A3B8" }}
-        >
-          <span>{desc.footer.brand}</span>
-          <span>Slide {desc.footer.page}</span>
-        </div>
-      )}
-    </>
+// Compact designed thumbnail — the SAME rendering engine as the canvas,
+// present overlay, and PPTX export (computeSlideLayout -> SlideStage), just
+// scaled down. The 16:9 container with containerType: inline-size makes the
+// cqw units scale the full design (accent bar, cards, footer, images) 1:1.
+function MiniSlide({ slide, theme, index, total, headingFont, bodyFont }) {
+  const desc = useMemo(
+    () => computeSlideLayout(slide, theme, { index, total }),
+    [slide, theme, index, total]
   );
-}
-
-// Compact designed thumbnail (accent bar + heading + image panel).
-function MiniSlide({ slide, theme, headingFont }) {
-  const desc = computeSlideLayout(slide, theme, { index: 0, total: 1 });
-  const heading = desc.texts?.[0]?.text || "Untitled Slide";
   return (
-    <>
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            desc.background.css === "transparent"
-              ? theme.background
-              : desc.background.css,
-        }}
-      />
-      <div
-        className="absolute top-0 left-0 right-0 h-[2px]"
-        style={{ background: desc.accentBar }}
-      />
-      {desc.image && (
-        <img
-          src={desc.image.src}
-          alt=""
-          className="absolute object-cover"
-          style={{ left: "58%", top: 0, width: "42%", height: "100%" }}
-        />
-      )}
-      <div
-        className="absolute left-[4%] top-[24%] w-[52%] truncate select-none"
-        style={{
-          fontSize: "10px",
-          fontWeight: 700,
-          fontFamily: `${headingFont || "Georgia"}, serif`,
-          color: theme.text,
-        }}
-      >
-        {heading}
-      </div>
-    </>
+    <SlideStage
+      desc={desc}
+      animating={false}
+      accentFont={headingFont}
+      bodyFont={bodyFont}
+    />
   );
 }
 
@@ -341,7 +123,9 @@ export default function PresentationView() {
     (CURATED_LOOKUP[themeId]?.fontFamily?.heading) ||
     bodyFont;
 
-  const designTheme = {
+  // Design theme is state so the Quick Theme buttons actually drive the
+  // design engine (accent bar, headings, fills) that every surface renders.
+  const [designTheme, setDesignTheme] = useState({
     primary: defaultTheme.primary,
     accent: defaultTheme.accent,
     background: defaultTheme.background,
@@ -351,120 +135,33 @@ export default function PresentationView() {
     textMuted: defaultTheme.textMuted,
     headingFont: headingFont || "Georgia",
     bodyFont: bodyFont || "Arial",
+  });
+
+  // Blank slide used when a deck has no slides yet.
+  const blankSlide = {
+    id: `slide-${Date.now()}`,
+    layout: "content-only",
+    heading: "New Slide",
+    content: [],
+    elements: [
+      { type: "heading", content: "New Slide" },
+      { type: "bullet", content: "", items: [] },
+    ],
   };
 
-  const convertSlides = (slides) => {
-    if (!slides.length) {
-      return [
-        {
-          background: {
-            type: "color",
-            value: defaultTheme.background,
-          },
-          elements: [
-            {
-              id: "title-0",
-              type: "text",
-              content: "New Slide",
-              x: 100,
-              y: 80,
-              fontSize: 36,
-              bold: true,
-              color: defaultTheme.text,
-              width: 500,
-              height: 80,
-              fontFamily: headingFont,
-            },
-          ],
-        },
-      ];
-    }
-
-    return slides.map((slide, slideIndex) => {
-      // If slides already have positioned elements (from editor format),
-      // use them directly without re-applying templates
-      if (Array.isArray(slide.elements) && slide.elements.some((el) => el.type === "text" && el.x !== undefined)) {
-        return {
-          background: slide.background || { type: "color", value: defaultTheme.background },
-          layoutPattern: slide.layout || slide.layoutPattern || "content-only",
-          elements: slide.elements.map((el) => ({
-            id: el.id || `el-${slideIndex}-${Math.random().toString(36).slice(2, 6)}`,
-            type: el.type,
-            content: el.content,
-            src: el.src,
-            x: el.x,
-            y: el.y,
-            width: el.width,
-            height: el.height,
-            fontSize: el.fontSize,
-            bold: el.bold,
-            color: el.color,
-            fontFamily: el.fontFamily,
-            align: el.align,
-            zIndex: el.zIndex,
-            opacity: el.opacity,
-            borderRadius: el.borderRadius,
-          })),
-        };
-      }
-
-      // Otherwise, apply template based on layout type
-      const themeObj = {
-        colors: {
-          primary: defaultTheme.primary,
-          accent: defaultTheme.accent,
-          background: defaultTheme.background,
-          surface: defaultTheme.surface,
-          border: defaultTheme.border,
-          text: defaultTheme.text,
-          textMuted: defaultTheme.textMuted,
-        },
-        fontFamily: {
-          heading: headingFont,
-          body: bodyFont,
-        },
-      };
-
-      const layoutResult = applyTemplate(slide, themeObj);
-
-      const background = layoutResult.background || {
-        type: "color",
-        value: defaultTheme.background,
-      };
-
-      const elements = layoutResult.elements.map((el) => ({
-        id: el.id || `el-${slideIndex}-${Math.random().toString(36).slice(2, 6)}`,
-        type: el.type,
-        content: el.content,
-        src: el.src,
-        x: el.x,
-        y: el.y,
-        width: el.width,
-        height: el.height,
-        fontSize: el.fontSize,
-        bold: el.bold,
-        color: el.color,
-        fontFamily: el.fontFamily,
-        align: el.align,
-        zIndex: el.zIndex,
-        opacity: el.opacity,
-        borderRadius: el.borderRadius,
-      }));
-
-      return {
-        background,
-        layoutPattern: slide.layout || "content-only",
-        elements,
-      };
-    });
-  };
-
+  // Slides are consumed as-is (outline OR editor format): the design engine
+  // (computeSlideLayout) derives the same roles from either schema, so the
+  // canvas, present overlay, preview, thumbnails and PPTX all share one truth.
   const [slides, setSlides] = useState(
-    editorSlidesFromState || convertSlides(rawSlides)
+    editorSlidesFromState?.length
+      ? editorSlidesFromState
+      : rawSlides.length
+        ? rawSlides
+        : [blankSlide]
   );
   const [themeIdState, setThemeIdState] = useState(themeId || "cornflower");
   const [activeIndex, setActiveIndex] = useState(0);
-  const [selectedId, setSelectedId] = useState(null);
+  const [selectedBlock, setSelectedBlock] = useState(null);
   const [presentationTitle, setPresentationTitle] = useState(
     state?.title || "My Presentation"
   );
@@ -477,7 +174,6 @@ export default function PresentationView() {
   const [isSaving, setIsSaving] = useState(false);
 
   const activeSlide = slides[activeIndex];
-  const selectedElement = activeSlide?.elements?.find((el) => el.id === selectedId);
 
   useEffect(() => {
     if (!isPresenting) return;
@@ -491,52 +187,101 @@ export default function PresentationView() {
     setSlides(updated);
   };
 
+  // Apply a design theme to the deck: updates the design engine theme (which
+  // drives every renderer) and re-tints slide fills.
   const applyTheme = (theme, applyAll = false) => {
-    const updated = [...slides];
-    const targetIndexes = applyAll ? updated.map((_, i) => i) : [activeIndex];
+    setDesignTheme((prev) => ({
+      ...prev,
+      background: theme.background?.value ?? theme.background ?? prev.background,
+      text: theme.textColor || prev.text,
+      textMuted: theme.textColor ? `${theme.textColor}B3` : prev.textMuted,
+      primary: theme.accent || prev.primary,
+      accent: theme.accent || prev.accent,
+      headingFont: theme.fontFamily || prev.headingFont,
+      bodyFont: theme.fontFamily || prev.bodyFont,
+    }));
+    const updated = slides.map((slide, i) =>
+      applyAll || i === activeIndex
+        ? { ...slide, background: theme.background ?? slide.background }
+        : slide
+    );
+    setSlides(updated);
+  };
 
-    targetIndexes.forEach((index) => {
-      updated[index].background = theme.background;
+    // ---- Design-block editing (canvas) -----------------------------
+  // Content edits write back to the source roles (updateSlideRole) and moves /
+  // sizes go into design.overrides that computeSlideLayout honors — so the
+  // canvas, present overlay, preview, thumbnails and PPTX stay in sync.
 
-      updated[index].elements.forEach((el) => {
-        if (el.type === "text") {
-          el.color = theme.textColor;
-          if (theme.fontFamily) {
-            el.fontFamily = theme.fontFamily;
-          }
-        }
-      });
+  const updateOverrides = (mutator) => {
+    setSlides((prev) =>
+      prev.map((s, i) =>
+        i === activeIndex
+          ? {
+              ...s,
+              design: {
+                ...(s.design || {}),
+                overrides: mutator(s.design?.overrides || {}),
+              },
+            }
+          : s
+      )
+    );
+  };
+
+  const handleBlockSelect = (block) => {
+    setSelectedBlock({ role: block.role, index: block.index, size: block.size });
+  };
+
+  const handleBlockUpdate = (role, index, value) => {
+    setSlides((prev) =>
+      prev.map((s, i) => (i === activeIndex ? updateSlideRole(s, role, index, value) : s))
+    );
+  };
+
+  const handleBlockMove = (role, index, pos) => {
+    updateOverrides((ov) => {
+      if (role === "heading") {
+        return { ...ov, heading: { ...(ov.heading || {}), ...pos } };
+      }
+      const bullets = [...(ov.bullets || [])];
+      while (bullets.length <= index) bullets.push({});
+      bullets[index] = { ...(bullets[index] || {}), ...pos };
+      return { ...ov, bullets };
     });
-
-    setSlides(updated);
   };
 
-  const updateElement = (id, updates) => {
-    const updated = [...slides];
-    const element = updated[activeIndex].elements.find(
-      (el) => el.id === id
+  const handleBlockSize = (role, index, size) => {
+    const clamped = Math.min(96, Math.max(10, Number(size) || 16));
+    setSelectedBlock((prev) => (prev ? { ...prev, size: clamped } : prev));
+    updateOverrides((ov) => {
+      if (role === "heading") {
+        return { ...ov, heading: { ...(ov.heading || {}), size: clamped } };
+      }
+      const bullets = [...(ov.bullets || [])];
+      while (bullets.length <= index) bullets.push({});
+      bullets[index] = { ...(bullets[index] || {}), size: clamped };
+      return { ...ov, bullets };
+    });
+  };
+
+  const removeCanvasImage = () => {
+    setSlides((prev) =>
+      prev.map((s, i) => {
+        if (i !== activeIndex) return s;
+        const next = { ...s };
+        if (next.elements?.some((el) => el.type === "image" && el.zIndex !== 0)) {
+          next.elements = next.elements.filter(
+            (el) => !(el.type === "image" && el.zIndex !== 0)
+          );
+        } else if (next.image) {
+          next.image = null;
+        } else if (next.background?.type === "image") {
+          next.background = { type: "color", value: designTheme.background };
+        }
+        return next;
+      })
     );
-    if (!element) return;
-    Object.assign(element, updates);
-    setSlides(updated);
-  };
-
-  const removeSelectedImage = () => {
-    if (!selectedElement || selectedElement.type !== "image") return;
-    const updated = [...slides];
-    updated[activeIndex].elements = updated[activeIndex].elements.filter(
-      (el) => el.id !== selectedElement.id
-    );
-    setSlides(updated);
-    setSelectedId(null);
-  };
-
-  const updateSelectedTextSize = (value) => {
-    if (!selectedElement || selectedElement.type !== "text") return;
-    const size = Number(value);
-    if (Number.isNaN(size)) return;
-    const clamped = Math.min(96, Math.max(10, size));
-    updateElement(selectedElement.id, { fontSize: clamped });
   };
 
   const updateSlideNote = (index, value) => {
@@ -551,10 +296,15 @@ export default function PresentationView() {
 
     const copy = {
       ...original,
-      elements: original.elements.map((el) => ({
-        ...el,
-        id: `${el.id}-copy-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      })),
+      elements: Array.isArray(original.elements)
+        ? original.elements.map((el) => ({
+            ...el,
+            id: `${el.id}-copy-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          }))
+        : original.elements,
+      design: original.design
+        ? JSON.parse(JSON.stringify(original.design))
+        : undefined,
     };
 
     const updatedSlides = [...slides];
@@ -616,24 +366,12 @@ export default function PresentationView() {
   };
 
   const addTextBox = () => {
-    const newText = {
-      id: `text-${Date.now()}`,
-      type: "text",
-      content: "Edit text",
-      x: 220,
-      y: 260,
-      fontSize: 24,
-      bold: false,
-      color: defaultTheme.text,
-      width: 260,
-      height: 60,
-      fontFamily: bodyFont,
-    };
-
-    const updated = [...slides];
-    updated[activeIndex].elements.push(newText);
-    setSlides(updated);
-    setSelectedId(newText.id);
+    // Appends to the canonical bullet source so the design engine sees the new
+    // point regardless of the slide's schema (text elements / bullet element /
+    // content array).
+    setSlides((prev) =>
+      prev.map((s, i) => (i === activeIndex ? addSlideRoleBullet(s, "Edit text") : s))
+    );
   };
 
   const handleImageUpload = (e) => {
@@ -642,20 +380,38 @@ export default function PresentationView() {
 
     const reader = new FileReader();
     reader.onload = function (event) {
-      const newImage = {
-        id: `img-${Date.now()}`,
-        type: "image",
-        src: event.target.result,
-        x: 200,
-        y: 200,
-        width: 300,
-        height: 200,
-        zIndex: 1,
-      };
-
-      const updated = [...slides];
-      updated[activeIndex].elements.push(newImage);
-      setSlides(updated);
+      setSlides((prev) =>
+        prev.map((s, i) => {
+          if (i !== activeIndex) return s;
+          const elements = Array.isArray(s.elements) ? s.elements : [];
+          if (elements.some((el) => el.type === "image" && el.zIndex !== 0)) {
+            return {
+              ...s,
+              elements: [
+                ...elements,
+                {
+                  id: `img-${Date.now()}`,
+                  type: "image",
+                  src: event.target.result,
+                  x: 200,
+                  y: 200,
+                  width: 300,
+                  height: 200,
+                  zIndex: 1,
+                },
+              ],
+            };
+          }
+          return {
+            ...s,
+            image: {
+              url: event.target.result,
+              thumb: event.target.result,
+              alt: "slide image",
+            },
+          };
+        })
+      );
     };
     reader.readAsDataURL(file);
   };
@@ -667,11 +423,11 @@ export default function PresentationView() {
     const cleanHex = (hex) => (hex || "").replace("#", "");
 
     const themeColors = {
-      primary: cleanHex(defaultTheme.primary),
-      accent: cleanHex(defaultTheme.accent),
-      background: cleanHex(defaultTheme.background),
-      text: cleanHex(defaultTheme.text),
-      textMuted: cleanHex(defaultTheme.textMuted),
+      primary: cleanHex(designTheme.primary),
+      accent: cleanHex(designTheme.accent),
+      background: cleanHex(designTheme.background),
+      text: cleanHex(designTheme.text),
+      textMuted: cleanHex(designTheme.textMuted),
     };
 
     defineMaster(pres, themeColors);
@@ -680,24 +436,17 @@ export default function PresentationView() {
       const slide = pres.addSlide({ masterName: "MODERN_MASTER" });
       // Shared design engine: same layout description the Presentation View renders,
       // so the PowerPoint export matches the on-screen deck (blocks, cards, images).
-      await exportSlideWithElements(slide, slideData, themeColors, bodyFont, headingFont);
+      await exportSlideWithElements(
+        slide,
+        slideData,
+        themeColors,
+        designTheme.bodyFont,
+        designTheme.headingFont,
+        { index: slides.indexOf(slideData), total: slides.length }
+      );
     }
 
-    await pres.writeFile({ fileName: `${presentationTitle || "Presentation"}.pptx` });
-  };
-
-  const getBackgroundStyle = () => {
-    if (!activeSlide?.background) return "#ffffff";
-    if (activeSlide.background.type === "color") {
-      return activeSlide.background.value;
-    }
-    if (activeSlide.background.type === "gradient") {
-      return activeSlide.background.value;
-    }
-    if (activeSlide.background.type === "image") {
-      return "#ffffff";
-    }
-    return "#ffffff";
+await pres.writeFile({ fileName: `${presentationTitle || "Presentation"}.pptx` });
   };
 
   const goToPresentMode = () => {
@@ -746,6 +495,7 @@ export default function PresentationView() {
           {
             background: { type: "color", value: defaultTheme.background },
             textColor: defaultTheme.text,
+            accent: defaultTheme.accent,
             fontFamily: bodyFont,
           },
           true
@@ -798,21 +548,10 @@ export default function PresentationView() {
     },
   ];
 
-  const convertEditorSlidesToOutline = (editorSlides) =>
-    editorSlides.map((slide) => {
-      const textElements = (slide.elements || []).filter((el) => el.type === "text");
-      const heading = textElements[0]?.content || "Untitled Slide";
-      const content = textElements.slice(1).map((el) => el.content || "").filter(Boolean);
-      const imageEl = (slide.elements || []).find((el) => el.type === "image" && el.zIndex !== 0);
-      return {
-        heading,
-        content,
-        layout: slide.layoutPattern || "content-only",
-        image: imageEl ? { url: imageEl.src, thumb: imageEl.src, alt: "slide image" } : slide.image || null,
-        imageKeyword: slide.imageKeyword || "",
-        elements: slide.elements || [],
-      };
-    });
+  // Canonical outline conversion: derives heading/content/image through the
+  // same extractSlideRoles the design engine uses, so saving/round-tripping
+  // never changes how a slide looks.
+  const outlineSlides = slides.map((s) => toOutlineSlide(s));
 
   const handleSavePresentation = async () => {
     if (!presentationId) {
@@ -827,7 +566,7 @@ export default function PresentationView() {
         theme: themeIdState,
         slidesCount: slides.length,
         content: {
-          slides: convertEditorSlidesToOutline(slides),
+          slides: outlineSlides,
           editorSlides: slides,
           slideNotes,
           textAmount,
@@ -878,7 +617,7 @@ export default function PresentationView() {
           <button 
             onClick={() => navigate("/preview", { 
               state: {
-                presentation: { slides: convertEditorSlidesToOutline(slides) },
+                presentation: { slides: outlineSlides },
                 presentationId,
                 title: presentationTitle,
                 themeId,
@@ -1003,8 +742,11 @@ export default function PresentationView() {
 
                       {/* Mini Slide Canvas Preview Box */}
                       <div
-                        className="w-full h-16 rounded-lg border border-border overflow-hidden relative shadow-[inset_0_1px_3px_rgba(0,0,0,0.02)]"
-                        style={{ background: "var(--sidebar-accent)" }}
+                        className="w-full aspect-video rounded-lg border border-border overflow-hidden relative shadow-[inset_0_1px_3px_rgba(0,0,0,0.02)]"
+                        style={{
+                          background: "var(--sidebar-accent)",
+                          containerType: "inline-size",
+                        }}
                       >
                         {/* Microsoft Fluent Theme Mini Accents */}
                         {themeIdState === "fluent" && (
@@ -1017,7 +759,10 @@ export default function PresentationView() {
                         <MiniSlide
                           slide={slide}
                           theme={designTheme}
-                          headingFont={headingFont}
+                          index={index}
+                          total={slides.length}
+                          headingFont={designTheme.headingFont}
+                          bodyFont={designTheme.bodyFont}
                         />
                       </div>
                     </div>
@@ -1037,7 +782,11 @@ export default function PresentationView() {
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
-                    value={activeSlide.background.value}
+                    value={
+                      activeSlide?.background?.type === "color"
+                        ? activeSlide.background.value
+                        : designTheme.background
+                    }
                     onChange={(e) =>
                       updateSlideBackground({
                         type: "color",
@@ -1047,7 +796,7 @@ export default function PresentationView() {
                     className="w-12 h-10 border-0 rounded-xl cursor-pointer bg-transparent shrink-0 shadow-sm outline-none"
                   />
                   <div className="flex-1 text-xs text-sidebar-accent-foreground font-mono select-all bg-sidebar-accent border border-border py-2 px-3 rounded-xl shadow-2xs">
-                    {activeSlide.background.value}
+                    {activeSlide?.background?.value || designTheme.background}
                   </div>
                 </div>
               </div>
@@ -1151,29 +900,21 @@ export default function PresentationView() {
                 </PaginationContent>
               </Pagination>
 
-              {selectedElement?.type === "text" && (
+              {selectedBlock && (
                 <div className="flex items-center gap-2 border-l border-border pl-3">
-                  <span className="text-xs font-semibold text-muted-foreground">Font size:</span>
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    {selectedBlock.role === "heading" ? "Heading size:" : "Text size:"}
+                  </span>
                   <input
                     type="number"
                     min={10}
                     max={96}
-                    value={selectedElement.fontSize || 16}
-                    onChange={(e) => updateSelectedTextSize(e.target.value)}
+                    value={selectedBlock.size || 16}
+                    onChange={(e) =>
+                      handleBlockSize(selectedBlock.role, selectedBlock.index, e.target.value)
+                    }
                     className="w-16 border border-border/80 rounded-lg px-2 py-1 text-xs font-mono text-center outline-none focus:ring-1.5 focus:ring-orange-500/20 focus:border-orange-500"
                   />
-                </div>
-              )}
-
-              {selectedElement?.type === "image" && (
-                <div className="flex items-center border-l border-border pl-3">
-                  <button
-                    onClick={removeSelectedImage}
-                    className="flex items-center gap-1.5 bg-red-50 hover:bg-red-100/70 border border-red-200/40 text-red-600 text-xs font-bold py-1.5 px-3 rounded-xl transition-all cursor-pointer active:scale-95"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Delete Image</span>
-                  </button>
                 </div>
               )}
             </div>
@@ -1210,7 +951,7 @@ export default function PresentationView() {
 
         {/* Dynamic Canvas Drafting Table Viewport */}
         <div 
-          onClick={() => setSelectedId(null)}
+          onClick={() => setSelectedBlock(null)}
           className="flex-1 flex justify-center items-center overflow-auto relative p-8 select-none cursor-default"
           style={{
             backgroundColor: "var(--muted)",
@@ -1222,125 +963,29 @@ export default function PresentationView() {
             backgroundSize: "auto, 24px 24px, 24px 24px"
           }}
         >
-          {/* THE PHYSICAL SLIDE CARD */}
+{/* THE PHYSICAL SLIDE CARD — design-aware canvas */}
            <div
              style={{
                width: 1100,
                height: 618,
-               background: getBackgroundStyle(),
                position: "relative",
              }}
              className="rounded-2xl shadow-[0_24px_70px_rgba(15,23,42,0.08)] border border-border/50 overflow-hidden shrink-0 select-none"
            >
-             {/* Microsoft Fluent Theme Accents */}
-             {themeIdState === "fluent" && (
-               <>
-                 <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-gradient-to-br from-cyan-400/20 to-orange-500/20 blur-2xl pointer-events-none z-0" />
-                 <div className="absolute -bottom-36 -left-36 w-96 h-96 rounded-full bg-gradient-to-tr from-purple-500/10 to-orange-500/10 blur-2xl pointer-events-none z-0" />
-                 <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-orange-500 to-cyan-400 pointer-events-none z-0" />
-               </>
-             )}
-
-             {/* Background Image (zIndex 0) */}
-             {activeSlide.background?.type === "image" && activeSlide.background.value && (
-               <img
-                 src={activeSlide.background.value}
-                 alt=""
-                 className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-               />
-             )}
-
-             {/* Background Image Elements (zIndex 0) */}
-             {activeSlide.elements
-               .filter((el) => el.type === "image" && el.zIndex === 0)
-               .map((el) => (
-                 <img
-                   key={el.id}
-                   src={el.src}
-                   alt=""
-                   className="absolute pointer-events-none"
-                   style={{
-                     left: el.x,
-                     top: el.y,
-                     width: el.width,
-                     height: el.height,
-                     opacity: el.opacity !== undefined ? el.opacity : 1,
-                     objectFit: "cover",
-                   }}
-                 />
-               ))}
-
-             {activeSlide.elements
-               .filter((el) => !(el.type === "image" && el.zIndex === 0))
-               .map((el) => (
-               <Rnd
-                 key={el.id}
-                 size={{ width: el.width, height: el.height }}
-                 position={{ x: el.x, y: el.y }}
-                 bounds="parent"
-                 onDragStop={(e, d) =>
-                   updateElement(el.id, { x: d.x, y: d.y })
-                 }
-                 onResizeStop={(e, direction, ref, delta, position) =>
-                   updateElement(el.id, {
-                     width: parseInt(ref.style.width),
-                     height: parseInt(ref.style.height),
-                     x: position.x,
-                     y: position.y,
-                   })
-                 }
-                 onClick={(e) => {
-                   e.stopPropagation();
-                   setSelectedId(el.id);
-                 }}
-                 className="relative"
-               >
-                 {el.type === "text" && (
-                   <div
-                     contentEditable
-                     suppressContentEditableWarning
-                     onBlur={(e) =>
-                       updateElement(el.id, {
-                         content: e.target.innerText,
-                       })
-                     }
-                     style={{
-                       width: "100%",
-                       height: "100%",
-                       fontSize: el.fontSize,
-                       fontWeight: el.bold ? "bold" : "normal",
-                       color: el.color,
-                       fontFamily: `${el.fontFamily || bodyFont}, sans-serif`,
-                       padding: 4,
-                       textAlign: el.align || "left",
-                     }}
-                     className="outline-none break-words leading-relaxed select-text"
-                   >
-                     {el.content}
-                   </div>
-                 )}
-
-                 {el.type === "image" && (
-                   <img
-                     src={el.src}
-                     alt=""
-                     className="w-full h-full object-cover rounded-md pointer-events-none"
-                   />
-                 )}
-
-                 {/* Figma-Style circular drag corner handles for selected items */}
-                 {selectedId === el.id && (
-                   <>
-                     <div className="absolute inset-0 border border-orange-500/90 pointer-events-none rounded-sm" />
-                     <div className="absolute -top-1 -left-1 w-2.5 h-2.5 bg-card border-1.5 border-orange-500 rounded-full z-10 pointer-events-none shadow-sm" />
-                     <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-card border-1.5 border-orange-500 rounded-full z-10 pointer-events-none shadow-sm" />
-                     <div className="absolute -bottom-1 -left-1 w-2.5 h-2.5 bg-card border-1.5 border-orange-500 rounded-full z-10 pointer-events-none shadow-sm" />
-                     <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-card border-1.5 border-orange-500 rounded-full z-10 pointer-events-none shadow-sm" />
-                   </>
-                 )}
-               </Rnd>
-             ))}
-          </div>
+             <DesignCanvas
+               slide={activeSlide}
+               theme={designTheme}
+               meta={{ index: activeIndex, total: slides.length }}
+               headingFont={designTheme.headingFont}
+               bodyFont={designTheme.bodyFont}
+               selected={selectedBlock}
+               onSelect={handleBlockSelect}
+               onUpdate={handleBlockUpdate}
+               onMove={handleBlockMove}
+               onSize={handleBlockSize}
+               onRemoveImage={removeCanvasImage}
+             />
+           </div>
         </div>
       </main>
 
@@ -1411,11 +1056,11 @@ export default function PresentationView() {
               )}
 
               {presentDesc && (
-                <DesignStage
+                <SlideStage
                   desc={presentDesc}
                   animating={isSlideAnimating}
-                  accentFont={headingFont}
-                  bodyFont={bodyFont}
+                  accentFont={designTheme.headingFont}
+                  bodyFont={designTheme.bodyFont}
                 />
               )}
             </div>

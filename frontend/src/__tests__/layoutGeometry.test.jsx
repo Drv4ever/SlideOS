@@ -1,5 +1,14 @@
 import { applyTemplate } from "../utils/templates.js";
-import { computeSlideLayout, SLIDE_W, SLIDE_H } from "../utils/designedLayouts.js";
+import {
+  computeSlideLayout,
+  extractSlideRoles,
+  toOutlineSlide,
+  updateSlideRole,
+  addSlideRoleBullet,
+  deleteSlideRoleBullet,
+  SLIDE_W,
+  SLIDE_H,
+} from "../utils/designedLayouts.js";
 import { exportSlideWithElements } from "../utils/pptxLayouts.js";
 
 const theme = {
@@ -128,6 +137,173 @@ describe("design layout card text is never duplicated", () => {
       }
     }
     expect(true).toBe(true);
+  });
+});
+
+describe("single source of truth: every schema renders the same design", () => {
+  const OUTLINE_SLIDE = {
+    id: "s1",
+    layout: "content-only",
+    heading: "Our Approach",
+    content: ["Point 1", "Point 2", "Point 3"],
+    image: { url: "https://e.io/x.jpg", thumb: "x", alt: "x" },
+    elements: [
+      { type: "heading", content: "Our Approach" },
+      { type: "bullet", content: "", items: ["Point 1", "Point 2", "Point 3"] },
+    ],
+  };
+
+  const EDITOR_SLIDE = (() => {
+    const themeObj = {
+      colors: { primary: theme.primary, accent: theme.accent, background: theme.background, surface: theme.surface, border: theme.border, text: theme.text, textMuted: theme.textMuted },
+      fontFamily: { heading: theme.headingFont, body: theme.bodyFont },
+    };
+    const applied = applyTemplate(OUTLINE_SLIDE, themeObj);
+    return {
+      background: applied.background,
+      layoutPattern: OUTLINE_SLIDE.layout,
+      elements: applied.elements,
+    };
+  })();
+
+  it("outline slides (preview) and editor slides (present/export) produce identical descriptions", () => {
+    const a = computeSlideLayout(OUTLINE_SLIDE, theme, { index: 0, total: 1 });
+    const b = computeSlideLayout(EDITOR_SLIDE, theme, { index: 0, total: 1 });
+    expect(a.texts.map((t) => t.text)).toEqual(b.texts.map((t) => t.text));
+    expect(a.bullets.map((t) => t.text)).toEqual(b.bullets.map((t) => t.text));
+    expect(a.layout).toBe(b.layout);
+    expect(a.accentBar).toBe(b.accentBar);
+  });
+
+  it("toOutlineSlide round-trip is lossless (editor -> outline -> same desc)", () => {
+    const outline = toOutlineSlide(EDITOR_SLIDE);
+    expect(outline.heading).toBe("Our Approach");
+    expect(outline.content).toEqual(["Point 1", "Point 2", "Point 3"]);
+    const a = computeSlideLayout(EDITOR_SLIDE, theme, { index: 0, total: 1 });
+    const b = computeSlideLayout(outline, theme, { index: 0, total: 1 });
+    expect(b.texts.map((t) => t.text)).toEqual(a.texts.map((t) => t.text));
+    expect(b.bullets.map((t) => t.text)).toEqual(a.bullets.map((t) => t.text));
+  });
+
+  it("updateSlideRole edits any schema and extractSlideRoles reads it back", () => {
+    const editedOutline = updateSlideRole(OUTLINE_SLIDE, "heading", 0, "New Title");
+    expect(extractSlideRoles(editedOutline).heading).toBe("New Title");
+    const editedEditor = updateSlideRole(EDITOR_SLIDE, "heading", 0, "New Title");
+    expect(extractSlideRoles(editedEditor).heading).toBe("New Title");
+
+    const b1 = updateSlideRole(OUTLINE_SLIDE, "bullet", 1, "Edited Point");
+    expect(extractSlideRoles(b1).bullets).toEqual(["Point 1", "Edited Point", "Point 3"]);
+    const b2 = updateSlideRole(EDITOR_SLIDE, "bullet", 1, "Edited Point");
+    expect(extractSlideRoles(b2).bullets).toEqual(["Point 1", "Edited Point", "Point 3"]);
+  });
+
+  it("add/delete bullet helpers keep every schema's canonical source in sync", () => {
+    const addedOutline = addSlideRoleBullet(OUTLINE_SLIDE, "Point 4");
+    expect(extractSlideRoles(addedOutline).bullets).toEqual(["Point 1", "Point 2", "Point 3", "Point 4"]);
+    const addedEditor = addSlideRoleBullet(EDITOR_SLIDE, "Point 4");
+    expect(extractSlideRoles(addedEditor).bullets).toEqual(["Point 1", "Point 2", "Point 3", "Point 4"]);
+
+    const deletedOutline = deleteSlideRoleBullet(OUTLINE_SLIDE, 0);
+    expect(extractSlideRoles(deletedOutline).bullets).toEqual(["Point 2", "Point 3"]);
+    const deletedEditor = deleteSlideRoleBullet(EDITOR_SLIDE, 0);
+    expect(extractSlideRoles(deletedEditor).bullets).toEqual(["Point 2", "Point 3"]);
+  });
+
+  it("design.overrides move blocks and change sizes for every consumer", () => {
+    const overridden = {
+      ...OUTLINE_SLIDE,
+      design: {
+        overrides: {
+          heading: { x: 4.2, y: 0.9, size: 44 },
+          bullets: [{ y: 2.0 }, { x: 3.5 }],
+        },
+      },
+    };
+    const desc = computeSlideLayout(overridden, theme, { index: 0, total: 1 });
+    expect(desc.texts[0].x).toBe(4.2);
+    expect(desc.texts[0].y).toBe(0.9);
+    expect(desc.texts[0].size).toBe(44);
+    expect(desc.bullets[0].y).toBe(2.0);
+    expect(desc.bullets[1].x).toBe(3.5);
+  });
+
+  it("modern card titles honor the titleSize override", () => {
+    const modern = {
+      layout: "bullets-image",
+      heading: "Roadmap",
+      content: ["Intro", "Card A", "Card B"],
+      image: { url: "https://e.io/y.jpg", thumb: "y", alt: "y" },
+      design: { overrides: { bullets: [{}, { size: 26 }] } },
+    };
+    const desc = computeSlideLayout(modern, theme, { index: 0, total: 1 });
+    expect(desc.cards[0].titleSize).toBe(26);
+  });
+});
+
+describe("auto-fit: text always fits inside its box (no border clipping)", () => {
+  // Mirrors the engine's line estimation (avg glyph ~0.5em) to verify the
+  // fitted size actually keeps the content inside the box.
+  const perLineAt = (wIn, size) => Math.floor(wIn / ((size / 72) * 0.5));
+  const needed = (text, wIn, size, lineHeight) =>
+    Math.ceil(text.length / perLineAt(wIn, size)) * (size / 72) * lineHeight;
+
+  it("shrinks a long bullet so it fits the box height", () => {
+    const slide = makeSlide("content-only", "Our Approach", [
+      "This is an extremely long bullet point that keeps going and going far beyond what a single line could ever hold on this slide width",
+    ]);
+    const desc = computeSlideLayout(process(slide, 0), theme, { index: 0, total: 1 });
+    const b = desc.bullets[0];
+    expect(b.size).toBeLessThan(18);
+    expect(needed(b.text, b.w, b.size, 1.2)).toBeLessThanOrEqual(b.h + 0.01);
+  });
+
+  it("shrinks a long heading to fit its box", () => {
+    const slide = makeSlide("content-only", "A".repeat(160), []);
+    const desc = computeSlideLayout(process(slide, 0), theme, { index: 0, total: 1 });
+    const t = desc.texts[0];
+    expect(needed(t.text, t.w, t.size, 1.15)).toBeLessThanOrEqual(t.h + 0.01);
+  });
+
+  it("shrinks card title+body together so both fit inside the card", () => {
+    const slide = makeSlide(
+      "bullets-image",
+      "Roadmap",
+      [
+        "Intro line here",
+        "Card title that is quite long\n" +
+          "And a body that is also long enough to wrap over several lines inside the card keeping the text fully visible without clipping the border",
+      ],
+      { image: { url: "https://e.io/y.jpg", thumb: "y", alt: "y" } }
+    );
+    const desc = computeSlideLayout(process(slide, 0), theme, { index: 0, total: 1 });
+    const card = desc.cards[0];
+    const innerW = card.w - 0.36;
+    const innerH = card.h - 0.24;
+    expect(card.bodySize).toBeLessThan(11);
+    const titleH = Math.ceil(card.title.length / perLineAt(innerW, card.titleSize)) * (card.titleSize / 72) * 1.1;
+    const bodyH = Math.ceil(card.body.length / perLineAt(innerW, card.bodySize)) * (card.bodySize / 72) * 1.2 + 0.05;
+    expect(titleH + bodyH).toBeLessThanOrEqual(innerH + 0.01);
+  });
+
+  it("two-column bullets fit their 0.5in rows", () => {
+    const slide = makeSlide("two-column", "Two Pillars", [
+      "Column A first point that is long enough to wrap onto a second row inside its column",
+      "A2", "A3",
+      "Column B first point also reasonably long to wrap onto a second row as well",
+      "B2", "B3",
+    ]);
+    const desc = computeSlideLayout(process(slide, 0), theme, { index: 0, total: 1 });
+    for (const col of desc.columns) {
+      for (const item of col.bullets) {
+        expect(needed(item.text, col.w, item.size, 1.2)).toBeLessThanOrEqual(0.5 + 0.01);
+      }
+    }
+  });
+
+  it("does not shrink content that already fits", () => {
+    const slide = makeSlide("big-stat", "120%", ["Revenue"]);
+    const desc = computeSlideLayout(process(slide, 0), theme, { index: 0, total: 1 });
+    expect(desc.texts[0].size).toBe(60);
   });
 });
 

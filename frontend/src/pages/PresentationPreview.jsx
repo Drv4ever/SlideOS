@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   ArrowLeft, 
@@ -13,9 +13,153 @@ import {
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { updatePresentation } from "../services/presentationService";
-import { normalizePresentation, themeToColors, CURATED_LOOKUP } from "../utils/slideModel";
+import { normalizePresentation, CURATED_LOOKUP } from "../utils/slideModel";
+import { computeSlideLayout, toOutlineSlide, updateSlideRole, addSlideRoleBullet, deleteSlideRoleBullet } from "../utils/designedLayouts";
+import SlideStage from "../components/SlideStage";
 
 const themePalette = CURATED_LOOKUP;
+
+function getBulletElement(slide) {
+  return slide.elements?.find((el) => el.type === "bullet");
+}
+
+// Memoized slide card: renders the SAME designed slide as Present/Export
+// (computeSlideLayout -> SlideStage) plus the editable inputs beneath it. Each
+// card only recomputes its layout when its own slide object changes, so typing
+// in one card never recomputes the whole deck.
+const SlideCard = memo(function SlideCard({
+  slide,
+  slideIndex,
+  total,
+  designTheme,
+  headingFont,
+  bodyFont,
+  onHeadingChange,
+  onBulletChange,
+  onAddBullet,
+  onDeleteBullet,
+  onDeleteSlide,
+}) {
+  // Shared pipeline: the same layout engine Present/Export use, directly on the
+  // slide data — no intermediate template conversion, one source of truth.
+  const desc = useMemo(
+    () =>
+      computeSlideLayout(slide, designTheme, {
+        index: slideIndex,
+        total,
+      }),
+    [slide, designTheme, slideIndex, total]
+  );
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.96, height: 0, marginBottom: 0 }}
+      transition={{ duration: 0.25, layout: { duration: 0.3 } }}
+      className="bg-sidebar rounded-2xl border border-border/70 p-6 shadow-[0_16px_40px_-12px_rgba(15,23,42,0.06),0_4px_12px_rgba(15,23,42,0.02)] relative hover:border-border hover:shadow-[0_20px_48px_-10px_rgba(15,23,42,0.1),0_4px_16px_rgba(15,23,42,0.03)] transition-all group"
+    >
+      {/* Card Header Row */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          {/* Slide Number Bubble */}
+          <div className="w-9 h-9 rounded-xl bg-muted border border-border text-muted-foreground flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+            {(slideIndex + 1).toString().padStart(2, '0')}
+          </div>
+
+          {/* Layout Badge */}
+          {slide.layout && (
+            <span className="text-[9px] font-bold px-2 py-1 bg-muted/50 text-muted-foreground rounded-lg border border-border whitespace-nowrap">
+              {slide.layout.replace(/-/g, " ")}
+            </span>
+          )}
+        </div>
+
+        {/* Delete Slide Button */}
+        <button
+          onClick={() => onDeleteSlide(slideIndex)}
+          className="text-muted-foreground/70 hover:text-red-500 hover:bg-destructive/10 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+          title="Delete slide"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Designed slide preview — same rendering engine as Present/Export */}
+      <div
+        className="relative w-full aspect-video rounded-xl overflow-hidden border border-border/60"
+        style={{ containerType: "inline-size" }}
+      >
+        <SlideStage
+          desc={desc}
+          animating={false}
+          accentFont={headingFont}
+          bodyFont={bodyFont}
+        />
+      </div>
+
+      {/* Edit Details */}
+      <div className="flex-1 flex flex-col text-left mt-5">
+        {/* 1. Editable Title Heading */}
+        <div className="flex flex-col gap-1 mb-4">
+          <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest leading-none">
+            Slide Heading
+          </label>
+          <input
+            value={slide.heading}
+            onChange={(e) => onHeadingChange(slideIndex, e.target.value)}
+            className="w-full text-base font-bold text-foreground bg-transparent outline-none border-b border-transparent focus:border-orange-500/50 pb-0.5"
+            placeholder="Enter slide heading"
+            aria-label={`Slide ${slideIndex + 1} heading`}
+          />
+        </div>
+
+        {/* 2. Editable Bullet Points */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-1.5">
+            Slide Body Points
+          </label>
+
+          <div className="flex flex-col gap-2.5">
+            {(getBulletElement(slide)?.items || slide.content || []).map((point, bulletIndex) => (
+              <div key={bulletIndex} className="flex items-center gap-3 group/bullet">
+                {/* Custom Indigo Bullet Dash */}
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-500/80 shrink-0" />
+
+                <input
+                  value={point}
+                  onChange={(e) => onBulletChange(slideIndex, bulletIndex, e.target.value)}
+                  className="flex-1 text-sm text-muted-foreground bg-transparent outline-none border-b border-transparent focus:border-orange-500/40 pb-0.5 font-sans"
+                  placeholder="Bullet point item"
+                  aria-label={`Slide ${slideIndex + 1} bullet ${bulletIndex + 1}`}
+                />
+
+                {/* Hover close icon */}
+                <button
+                  onClick={() => onDeleteBullet(slideIndex, bulletIndex)}
+                  className="text-muted-foreground/70 hover:text-red-500 hover:bg-muted cursor-pointer opacity-0 group-hover/bullet:opacity-100 transition-opacity p-0.5 rounded-lg"
+                  title="Remove point"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 3. Add Point Action */}
+        <button
+          onClick={() => onAddBullet(slideIndex)}
+          className="mt-3 text-[11px] font-bold text-foreground flex items-center gap-1.5 cursor-pointer bg-muted hover:bg-accent border border-border/30 py-1 px-3 rounded-lg transition-all active:scale-[0.98] w-fit"
+        >
+          <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+          <span>Add point</span>
+        </button>
+      </div>
+    </motion.div>
+  );
+});
 
 export default function PresentationPreview() {
   const { state } = useLocation();
@@ -26,14 +170,41 @@ export default function PresentationPreview() {
   const themeId = state?.themeId || "cornflower";
   const selectedTheme = state?.theme;
   const textAmount = state?.textAmount || "detailed";
-  const activeTheme = selectedTheme?.colors || themePalette[themeId] || themePalette.cornflower;
 
-  // Normalize so both legacy {heading,content} and new {elements,layout} formats work
+  const fullTheme =
+    selectedTheme || themePalette[themeId] || themePalette.cornflower;
+  const themeColors = fullTheme?.colors || themePalette.cornflower.colors;
+  const headingFont =
+    fullTheme?.fontFamily?.heading || fullTheme?.fonts?.heading || "Space Grotesk";
+  const bodyFont =
+    fullTheme?.fontFamily?.body || fullTheme?.fonts?.body || "DM Sans";
+
+  // Shared theme shape consumed by computeSlideLayout (same as Present/Export).
+  const designTheme = useMemo(
+    () => ({
+      primary: themeColors.primary || "#f97316",
+      accent: themeColors.accent || "#fb923c",
+      background: themeColors.background || "#ffffff",
+      surface: themeColors.surface || "#f5f5f5",
+      border: themeColors.border || "#e5e7eb",
+      text: themeColors.text || "#111827",
+      textMuted: themeColors.textMuted || "#6b7280",
+      headingFont: headingFont || "Georgia",
+      bodyFont: bodyFont || "Arial",
+    }),
+    [themeColors, headingFont, bodyFont]
+  );
+
+  // Normalize so both legacy {heading,content} and new {elements,layout} formats
+  // work, then canonicalize to the outline shape the editors edit. The design
+  // engine derives the same roles from any shape, so nothing is lost visually.
   const normalized = normalizePresentation(
     { title: initialTitle, theme: selectedTheme, slides: initialPresentation?.slides || [] },
     themeId
   );
-  const [slides, setSlides] = useState(normalized.slides);
+  const [slides, setSlides] = useState(
+    normalized.slides.map((s) => toOutlineSlide(s))
+  );
   const [title, setTitle] = useState(normalized.title);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -55,51 +226,39 @@ export default function PresentationPreview() {
     );
   }
 
-  /* ================= UPDATE FUNCTIONS ================= */
+  /* ================= UPDATE FUNCTIONS (immutable, memo-friendly) ================= */
 
-  const getBulletElement = (slide) =>
-    slide.elements?.find((el) => el.type === "bullet");
+  const updateHeading = useCallback((index, value) => {
+    setSlides((prev) =>
+      prev.map((s, i) => (i === index ? updateSlideRole(s, "heading", 0, value) : s))
+    );
+  }, []);
 
-  const updateHeading = (index, value) => {
-    const updated = [...slides];
-    updated[index].heading = value;
-    const headingEl = updated[index].elements.find((el) => el.type === "heading");
-    if (headingEl) headingEl.content = value;
-    setSlides(updated);
-  };
+  const updateBullet = useCallback((slideIndex, bulletIndex, value) => {
+    setSlides((prev) =>
+      prev.map((s, i) =>
+        i === slideIndex ? updateSlideRole(s, "bullet", bulletIndex, value) : s
+      )
+    );
+  }, []);
 
-  const updateBullet = (slideIndex, bulletIndex, value) => {
-    const updated = [...slides];
-    let bulletEl = getBulletElement(updated[slideIndex]);
-    if (!bulletEl) {
-      bulletEl = { type: "bullet", content: "", items: [] };
-      updated[slideIndex].elements.push(bulletEl);
-    }
-    bulletEl.items[bulletIndex] = value;
-    setSlides(updated);
-  };
+  const addBullet = useCallback((slideIndex) => {
+    setSlides((prev) =>
+      prev.map((s, i) => (i === slideIndex ? addSlideRoleBullet(s, "New point") : s))
+    );
+  }, []);
 
-  const addBullet = (slideIndex) => {
-    const updated = [...slides];
-    let bulletEl = getBulletElement(updated[slideIndex]);
-    if (!bulletEl) {
-      bulletEl = { type: "bullet", content: "", items: [] };
-      updated[slideIndex].elements.push(bulletEl);
-    }
-    bulletEl.items.push("New point");
-    setSlides(updated);
-  };
+  const deleteBullet = useCallback((slideIndex, bulletIndex) => {
+    setSlides((prev) =>
+      prev.map((s, i) =>
+        i === slideIndex ? deleteSlideRoleBullet(s, bulletIndex) : s
+      )
+    );
+  }, []);
 
-  const deleteBullet = (slideIndex, bulletIndex) => {
-    const updated = [...slides];
-    const bulletEl = getBulletElement(updated[slideIndex]);
-    if (bulletEl) bulletEl.items.splice(bulletIndex, 1);
-    setSlides(updated);
-  };
-
-  const addSlide = () => {
-    setSlides([
-      ...slides,
+  const addSlide = useCallback(() => {
+    setSlides((prev) => [
+      ...prev,
       {
         id: `slide-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         layout: "header",
@@ -110,12 +269,11 @@ export default function PresentationPreview() {
         ],
       },
     ]);
-  };
+  }, []);
 
-  const deleteSlide = (index) => {
-    const updated = slides.filter((_, i) => i !== index);
-    setSlides(updated);
-  };
+  const deleteSlide = useCallback((index) => {
+    setSlides((prev) => prev.filter((_, i) => i !== index));
+  }, []);
 
   const handleSaveChanges = async () => {
     if (!presentationId) {
@@ -231,112 +389,20 @@ export default function PresentationPreview() {
       <div className="flex-1 flex flex-col gap-6 max-w-3xl mx-auto w-full pb-16">
         <AnimatePresence initial={false} mode="popLayout">
           {slides.map((slide, slideIndex) => (
-            <motion.div
+            <SlideCard
               key={slide.id || slideIndex}
-              layout
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, height: 0, marginBottom: 0 }}
-              transition={{ duration: 0.25, layout: { duration: 0.3 } }}
-              className="bg-sidebar rounded-2xl border border-border/70 p-6 flex gap-5 items-center shadow-[0_16px_40px_-12px_rgba(15,23,42,0.06),0_4px_12px_rgba(15,23,42,0.02)] relative hover:border-border hover:shadow-[0_20px_48px_-10px_rgba(15,23,42,0.1),0_4px_16px_rgba(15,23,42,0.03)] transition-all group"
-            >
-               {/* Slide Number Bubble */}
-               <div className="w-9 h-9 rounded-xl bg-muted border border-border text-muted-foreground flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
-                 {(slideIndex + 1).toString().padStart(2, '0')}
-               </div>
-
-               {/* Stock Image Thumbnail */}
-               {slide.image?.url && (
-                 <div className="w-20 h-20 aspect-square rounded-lg overflow-hidden border border-border shrink-0 relative group/image">
-                   <img
-                     src={slide.image.thumb || slide.image.url}
-                     alt={slide.image.alt || slide.imageKeyword || "slide visual"}
-                     className="w-full h-full object-cover"
-                   />
-                   <div className="absolute inset-0 bg-black/0 group-hover/image:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover/image:opacity-100">
-                     <span className="text-[9px] text-white font-bold">Unsplash</span>
-                   </div>
-                 </div>
-               )}
-
-               {/* Layout Badge */}
-               {slide.layout && (
-                 <div className="shrink-0 flex items-center">
-                   <span className="text-[9px] font-bold px-2 py-1 bg-muted/50 text-muted-foreground rounded-lg border border-border whitespace-nowrap">
-                     {slide.layout.replace(/-/g, " ")}
-                   </span>
-                 </div>
-               )}
-
-               {/* Edit Details */}
-              <div className="flex-1 flex flex-col text-left">
-                
-                {/* 1. Editable Title Heading */}
-                <div className="flex flex-col gap-1 mb-4">
-                  <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest leading-none">
-                    Slide Heading
-                  </label>
-                  <input
-                    value={slide.heading}
-                    onChange={(e) => updateHeading(slideIndex, e.target.value)}
-                    className="w-full text-base font-bold text-foreground bg-transparent outline-none border-b border-transparent focus:border-orange-500/50 pb-0.5"
-                    placeholder="Enter slide heading"
-                    aria-label={`Slide ${slideIndex + 1} heading`}
-                  />
-                </div>
-
-                {/* 2. Editable Bullet Points */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-1.5">
-                    Slide Body Points
-                  </label>
-                  
-                  <div className="flex flex-col gap-2.5">
-                    {(getBulletElement(slide)?.items || []).map((point, bulletIndex) => (
-                      <div key={bulletIndex} className="flex items-center gap-3 group/bullet">
-                        {/* Custom Indigo Bullet Dash */}
-                        <span className="w-1.5 h-1.5 rounded-full bg-orange-500/80 shrink-0" />
-                        
-                        <input
-                          value={point}
-                          onChange={(e) => updateBullet(slideIndex, bulletIndex, e.target.value)}
-                          className="flex-1 text-sm text-muted-foreground bg-transparent outline-none border-b border-transparent focus:border-orange-500/40 pb-0.5 font-sans"
-                          placeholder="Bullet point item"
-                          aria-label={`Slide ${slideIndex + 1} bullet ${bulletIndex + 1}`}
-                        />
-
-                        {/* Hover close icon */}
-                        <button
-                          onClick={() => deleteBullet(slideIndex, bulletIndex)}
-                          className="text-muted-foreground/70 hover:text-red-500 hover:bg-muted cursor-pointer opacity-0 group-hover/bullet:opacity-100 transition-opacity p-0.5 rounded-lg"
-                          title="Remove point"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 3. Add Point Action */}
-                <button
-                  onClick={() => addBullet(slideIndex)}
-                  className="mt-3 text-[11px] font-bold text-foreground flex items-center gap-1.5 cursor-pointer bg-muted hover:bg-accent border border-border/30 py-1 px-3 rounded-lg transition-all active:scale-[0.98] w-fit"
-                >
-                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                  <span>Add point</span>
-                </button>
-              </div>
-
-              {/* Delete Slide Button (Top Right of Card) */}
-              <button
-                onClick={() => deleteSlide(slideIndex)}
-                className="absolute top-4 right-4 text-muted-foreground/70 hover:text-red-500 hover:bg-destructive/10 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
-                title="Delete slide"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </motion.div>
+              slide={slide}
+              slideIndex={slideIndex}
+              total={slides.length}
+              designTheme={designTheme}
+              headingFont={headingFont}
+              bodyFont={bodyFont}
+              onHeadingChange={updateHeading}
+              onBulletChange={updateBullet}
+              onAddBullet={addBullet}
+              onDeleteBullet={deleteBullet}
+              onDeleteSlide={deleteSlide}
+            />
           ))}
         </AnimatePresence>
 

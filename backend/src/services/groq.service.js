@@ -1,3 +1,23 @@
+const FIELD_DEFINITIONS = `Field definitions:
+- "heading": Slide title (concise, 3-8 words)
+- "content": Array of bullet points following the text density rules
+- "imageKeyword": 2-4 word search query for a stock photo that visually enhances this slide. Extract the most visual/concrete concept from the slide content. Examples: "solar panels desert", "diverse team meeting", "city skyline night", "medical research lab", "abstract data visualization". DO NOT use generic words like "business", "technology", "concept". Be specific and concrete.
+- "layout": One of these template types based on slide purpose:
+  - "title-slide" → For the FIRST slide only. Large centered heading, subtitle, full background image.
+  - "bullets-image" → For slides with 3+ bullet points. Heading top-left, bullets on left, image on right.
+  - "two-column" → For comparing two ideas. Two columns with sub-headings and bullets side by side.
+  - "big-stat" → For a single key number/statistic or impactful claim. Large central number/text with supporting context.
+  - "section-divider" → For major section transitions mid-deck. Minimal text over a full background image. Should NOT be used for first/last slides.
+  - "content-only" → For dense information slides. Clean heading + bullet points layout, no image needed. Use this when a slide doesn't have a strong visual concept.`;
+
+const LAYOUT_RULES = `Layout assignment rules:
+- Slide 1 MUST use "title-slide"
+- If the slide content expresses a single strong statistic, use "big-stat"
+- If the slide compares two sides/approaches, use "two-column"
+- If it's a section transition (usually every 3-4 slides), use "section-divider"
+- If a clear visual keyword exists, prefer "bullets-image" over "content-only"
+- Only use "content-only" when no good visual keyword exists`;
+
 export async function generateWithGroq({
   audience,
   prompt,
@@ -6,6 +26,7 @@ export async function generateWithGroq({
   textAmount,
   theme,
   tone = "neutral",
+  mode = "generate",
 }) {
   const apiKey = process.env.GROQ_API_KEY;
 

@@ -49,7 +49,12 @@ export function interpolateColor(hex1, hex2, ratio) {
   return `${r}${g}${b}`;
 }
 
-function extractRoles(slideData) {
+// Single canonical role extraction. Consumes BOTH slide schemas:
+// - editor format: positioned `text`/`image` elements (+ background)
+// - outline format: `heading` + `content[]` + `image` (+ heading/bullet elements)
+// So every consumer (Preview, Present, thumbnails, PPTX) derives the same
+// heading/bullets/image from the same slide object — one source of truth.
+export function extractSlideRoles(slideData) {
   const elements = slideData.elements || [];
   const texts = elements.filter(
     (e) => e.type === "text" && e.content && String(e.content).trim()
@@ -58,17 +63,32 @@ function extractRoles(slideData) {
   const bgImageEl = elements.find((e) => e.type === "image" && e.zIndex === 0);
   const bg = slideData.background || {};
 
+  const headingEl = elements.find((e) => e.type === "heading");
+  const bulletEl = elements.find((e) => e.type === "bullet");
+  const outlineBullets = Array.isArray(slideData.content)
+    ? slideData.content.filter((c) => c && String(c).trim())
+    : [];
+
   const heading =
     texts.find((e) => e.bold)?.content ||
     texts[0]?.content ||
     slideData.heading ||
+    headingEl?.content ||
     "Untitled";
-  const rest = texts.filter((t) => t.content !== heading);
-  const subtitle = rest[0]?.content || "";
-  const bullets = rest.map((t) => t.content).filter(Boolean);
 
-  const bgSrc = (bg.type === "image" && bg.value) || bgImageEl?.src || null;
-  const panelSrc = fgImages[0]?.src || bgSrc || null;
+  const rest = texts.filter((t) => t.content !== heading);
+  const fallbackBullets =
+    outlineBullets.length > 0 ? outlineBullets : bulletEl?.items || [];
+  const bullets =
+    rest.length > 0
+      ? rest.map((t) => t.content).filter(Boolean)
+      : fallbackBullets;
+  const subtitle =
+    slideData.subtitle || rest[0]?.content || fallbackBullets[0] || "";
+
+  const bgSrc =
+    (bg.type === "image" && bg.value) || bgImageEl?.src || slideData.image?.url || null;
+  const panelSrc = fgImages[0]?.src || slideData.image?.url || bgSrc || null;
 
   return { heading, subtitle, bullets, fgImages, bgSrc, panelSrc, background: bg };
 }
@@ -94,7 +114,7 @@ function backgroundDesc(bg, theme) {
 }
 
 export function computeSlideLayout(slideData, theme, meta) {
-  const roles = extractRoles(slideData);
+  const roles = extractSlideRoles(slideData);
   const background = backgroundDesc(roles.background, theme);
 
   let layout =
@@ -102,7 +122,8 @@ export function computeSlideLayout(slideData, theme, meta) {
     slideData.layout ||
     (roles.background.type === "image" ? "section-divider" : "content-only");
 
-  const hasFgImage = roles.fgImages.length > 0;
+  const hasFgImage =
+    roles.fgImages.length > 0 || !!roles.panelSrc || !!roles.bgSrc;
 
   const builder = {
     "title-slide": () => titleSlide(roles, theme, background),
@@ -113,11 +134,300 @@ export function computeSlideLayout(slideData, theme, meta) {
     "content-only": () => contentOnly(roles, theme, background),
   };
 
-  if (builder[layout]) return wrap(builder[layout](), layout, theme, meta);
+  let desc;
+  if (builder[layout]) {
+    desc = wrap(builder[layout](), layout, theme, meta);
+  } else {
+    desc = hasFgImage
+      ? wrap(modern(roles, theme, background), "modern", theme, meta)
+      : wrap(contentOnly(roles, theme, background), "content-only", theme, meta);
+  }
 
-  return hasFgImage
-    ? wrap(modern(roles, theme, background), "modern", theme, meta)
-    : wrap(contentOnly(roles, theme, background), "content-only", theme, meta);
+  // User moves/sizes from the design-aware editor win over the computed layout.
+  applyOverrides(desc, slideData.design?.overrides);
+
+  // Auto-fit: shrink every text block's font size so its content fits inside
+  // its box (designed box heights are modest on purpose; long content would
+  // otherwise clip through the box border). Runs AFTER overrides so even a
+  // manual size is clamped to what the box can actually hold. Every consumer
+  // (canvas, preview, present, thumbnails, PPTX) reads this same description.
+  fitDescription(desc);
+
+  return desc;
+}
+
+// ------------------------------------------------------------------ auto-fit
+
+// Average glyph width as a fraction of the font size (mixed-case text).
+const AVG_GLYPH_EM = 0.5;
+
+// Estimate how many wrapped lines a text needs at a given pt size inside a box
+// w inches wide. Explicit "\n" line breaks always start a new line.
+function estimateLines(text, wIn, sizePt) {
+  const perLine = Math.max(1, Math.floor(wIn / ((sizePt / 72) * AVG_GLYPH_EM)));
+  return String(text)
+    .split("\n")
+    .reduce((acc, seg) => acc + Math.max(1, Math.ceil((seg.length || 1) / perLine)), 0);
+}
+
+// Fitted font size (pt) for a block of text in a w x h inch box.
+function fitSize(text, wIn, hIn, sizePt, lineHeight, minSize) {
+  const target = Math.max(0.25, hIn);
+  let size = sizePt || 16;
+  for (let pass = 0; pass < 4; pass++) {
+    const needed = estimateLines(text, wIn, size) * (size / 72) * lineHeight;
+    if (needed <= target || size <= minSize) break;
+    size = Math.max(minSize, Math.round((size * (target / needed)) * 10) / 10);
+  }
+  return size;
+}
+
+// Shrink card title + body fonts together so both fit inside the card box
+// (SlideStage pads the card 0.12 in top/bottom; body sits under the title).
+function fitCard(card) {
+  const text = String(card.title || "");
+  const body = String(card.body || "");
+  if (!text && !body) return;
+  const innerW = Math.max(0.5, card.w - 0.36);
+  const innerH = Math.max(0.3, card.h - 0.24);
+  const startTitle = card.titleSize || 15;
+  const startBody = card.bodySize || 11;
+  let titleSize = startTitle;
+  let bodySize = startBody;
+  for (let pass = 0; pass < 4; pass++) {
+    const titleH = estimateLines(text, innerW, titleSize) * (titleSize / 72) * 1.1;
+    const bodyH = body
+      ? estimateLines(body, innerW, bodySize) * (bodySize / 72) * 1.2 + 0.05
+      : 0;
+    if (titleH + bodyH <= innerH || (titleSize <= 8 && bodySize <= 7)) break;
+    const scale = innerH / (titleH + bodyH);
+    titleSize = Math.max(8, Math.round(titleSize * scale * 10) / 10);
+    bodySize = Math.max(7, Math.round(bodySize * scale * 10) / 10);
+  }
+  if (titleSize !== startTitle) card.titleSize = titleSize;
+  if (bodySize !== startBody) card.bodySize = bodySize;
+}
+
+function fitDescription(desc) {
+  for (const t of desc.texts || []) {
+    t.size = fitSize(t.text, t.w, t.h, t.size, 1.15, 10);
+  }
+  for (const b of desc.bullets || []) {
+    b.size = fitSize(b.text, b.w, b.h, b.size, 1.2, 9);
+  }
+  for (const col of desc.columns || []) {
+    for (const item of col.bullets || []) {
+      item.size = fitSize(item.text, col.w, 0.5, item.size || 17, 1.2, 9);
+    }
+  }
+  for (const c of desc.cards || []) {
+    fitCard(c);
+  }
+}
+
+// Overrides (in inches/pt) recorded by the design-aware editor canvas. Applied
+// to the computed description so web, present, thumbnails and PPTX all honor
+// the user's manual tweaks — one description, one source of truth.
+function applyOverrides(desc, overrides) {
+  if (!overrides) return;
+  const heading = overrides.heading;
+  if (heading && desc.texts?.[0]) {
+    if (heading.x !== undefined) desc.texts[0].x = heading.x;
+    if (heading.y !== undefined) desc.texts[0].y = heading.y;
+    if (heading.size !== undefined) desc.texts[0].size = heading.size;
+  }
+  const bullets = overrides.bullets || [];
+  // content-only / section-divider bullets
+  (desc.bullets || []).forEach((b, i) => {
+    const o = bullets[i];
+    if (!o) return;
+    if (o.x !== undefined) b.x = o.x;
+    if (o.y !== undefined) b.y = o.y;
+    if (o.size !== undefined) b.size = o.size;
+  });
+  // two-column bullets (left = first ceil(n/2), right = the rest — same split
+  // the twoColumn builder uses)
+  const mid = Math.ceil(bullets.length / 2);
+  (desc.columns || []).forEach((col, k) => {
+    (col.bullets || []).forEach((b, i) => {
+      const o = bullets[k === 0 ? i : mid + i];
+      if (!o) return;
+      if (o.x !== undefined) col.x = o.x;
+      if (o.y !== undefined) b.y = o.y;
+      if (o.size !== undefined) b.size = o.size;
+    });
+  });
+  // modern cards (card i -> bullet i+1, bullets[0] is the intro)
+  (desc.cards || []).forEach((c, i) => {
+    const o = bullets[i + 1];
+    if (!o) return;
+    if (o.x !== undefined) c.x = o.x;
+    if (o.y !== undefined) c.y = o.y;
+    if (o.size !== undefined) c.titleSize = o.size;
+  });
+  // subtitle / intro text block (texts[1]) is bullet 0
+  if (bullets[0] && desc.texts?.[1]) {
+    if (bullets[0].x !== undefined) desc.texts[1].x = bullets[0].x;
+    if (bullets[0].y !== undefined) desc.texts[1].y = bullets[0].y;
+    if (bullets[0].size !== undefined) desc.texts[1].size = bullets[0].size;
+  }
+}
+
+// Canonical outline shape for editors that work in {heading, content[]}.
+// Lossless for the design engine: roles are derived from the SAME extractSlideRoles
+// every renderer uses, so converting back and forth never changes the look.
+export function toOutlineSlide(slide) {
+  const roles = extractSlideRoles(slide || {});
+  const panelSrc = roles.panelSrc;
+  return {
+    id: slide?.id || slide?._id,
+    layout: slide?.layoutPattern || slide?.layout || "content-only",
+    heading: roles.heading,
+    content: roles.bullets,
+    image:
+      slide?.image ||
+      (panelSrc
+        ? { url: panelSrc, thumb: panelSrc, alt: "slide image" }
+        : null),
+    elements: [
+      { type: "heading", content: roles.heading },
+      { type: "bullet", content: "", items: roles.bullets },
+    ],
+  };
+}
+
+// Write one role (heading or bullet[ index ]) back to the slide, regardless of
+// which schema it uses (positioned text elements, heading/bullet elements, or
+// plain {heading, content[]}). Mirrors extractSlideRoles, so any edit made in
+// the canvas or preview is seen identically by every renderer.
+export function updateSlideRole(slide, role, index, value) {
+  const next = { ...slide };
+  const elements = Array.isArray(slide.elements) ? [...slide.elements] : [];
+
+  const textEls = elements.filter(
+    (e) => e.type === "text" && e.content !== undefined
+  );
+
+  if (role === "heading") {
+    if (textEls.length > 0) {
+      const headingEl = textEls.find((e) => e.bold) || textEls[0];
+      next.elements = elements.map((el) =>
+        el.id === headingEl.id ? { ...el, content: value } : el
+      );
+      return next;
+    }
+    const headingEl = elements.find((e) => e.type === "heading");
+    if (headingEl) {
+      next.elements = elements.map((el) =>
+        el.type === "heading" ? { ...el, content: value } : el
+      );
+    }
+    next.heading = value;
+    return next;
+  }
+
+  if (textEls.length > 0) {
+    const headingText = textEls.find((e) => e.bold) || textEls[0];
+    const rest = textEls.filter((el) => el.id !== headingText.id);
+    const target = rest[index];
+    if (!target) return next;
+    next.elements = elements.map((el) =>
+      el.id === target.id ? { ...el, content: value } : el
+    );
+    return next;
+  }
+
+  const bulletEl = elements.find((e) => e.type === "bullet");
+  if (bulletEl) {
+    const items = [...(bulletEl.items || [])];
+    items[index] = value;
+    next.elements = elements.map((el) =>
+      el.type === "bullet" ? { ...el, items } : el
+    );
+    // Keep the content[] mirror in sync (extractSlideRoles prefers it).
+    const content = Array.isArray(slide.content) ? [...slide.content] : [];
+    if (content.length || index < content.length) {
+      content[index] = value;
+      next.content = content;
+    }
+    return next;
+  }
+
+  const content = Array.isArray(slide.content) ? [...slide.content] : [];
+  content[index] = value;
+  next.content = content;
+  return next;
+}
+
+// Append a bullet to the canonical bullet source of any schema.
+export function addSlideRoleBullet(slide, value = "New point") {
+  const next = { ...slide };
+  const elements = Array.isArray(slide.elements) ? [...slide.elements] : [];
+  const textEls = elements.filter(
+    (e) => e.type === "text" && e.content !== undefined
+  );
+  if (textEls.length > 0) {
+    next.elements = [
+      ...elements,
+      {
+        id: `bullet-${Date.now()}`,
+        type: "text",
+        content: value,
+        x: 120,
+        y: 0,
+        width: 800,
+        height: 36,
+        fontSize: 22,
+        bold: false,
+      },
+    ];
+    return next;
+  }
+  const bulletEl = elements.find((e) => e.type === "bullet");
+  if (bulletEl) {
+    next.elements = elements.map((el) =>
+      el.type === "bullet"
+        ? { ...el, items: [...(el.items || []), value] }
+        : el
+    );
+    next.content = [...(Array.isArray(slide.content) ? slide.content : []), value];
+    return next;
+  }
+  next.content = [...(Array.isArray(slide.content) ? slide.content : []), value];
+  return next;
+}
+
+// Remove a bullet from the canonical bullet source of any schema.
+export function deleteSlideRoleBullet(slide, index) {
+  const next = { ...slide };
+  const elements = Array.isArray(slide.elements) ? [...slide.elements] : [];
+  const textEls = elements.filter(
+    (e) => e.type === "text" && e.content !== undefined
+  );
+  if (textEls.length > 0) {
+    const headingText = textEls.find((e) => e.bold) || textEls[0];
+    const rest = textEls.filter((el) => el.id !== headingText.id);
+    const target = rest[index];
+    if (!target) return next;
+    next.elements = elements.filter((el) => el.id !== target.id);
+    return next;
+  }
+  const bulletEl = elements.find((e) => e.type === "bullet");
+  if (bulletEl) {
+    next.elements = elements.map((el) =>
+      el.type === "bullet"
+        ? { ...el, items: (el.items || []).filter((_, i) => i !== index) }
+        : el
+    );
+    next.content = (Array.isArray(slide.content) ? slide.content : []).filter(
+      (_, i) => i !== index
+    );
+    return next;
+  }
+  next.content = (Array.isArray(slide.content) ? slide.content : []).filter(
+    (_, i) => i !== index
+  );
+  return next;
 }
 
 function wrap(layout, name, theme, meta) {
