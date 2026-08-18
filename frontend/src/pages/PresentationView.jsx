@@ -1561,6 +1561,7 @@ export default function PresentationView() {
             key={slide.id || index}
             className="print-slide"
             style={{
+              position: "relative",
               width: "13.333in",
               height: "7.5in",
               containerType: "inline-size",

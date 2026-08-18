@@ -165,18 +165,19 @@ export default function ShareView() {
 
       <main className="flex-1 flex flex-col items-center gap-6 py-8 px-4">
         {/* Current slide */}
-        <div className="w-full max-w-4xl aspect-video rounded-xl overflow-hidden border border-border/60 shadow-lg bg-white">
-          <div className="w-full h-full" style={{ containerType: "inline-size" }}>
-            <SlideStage
-              desc={computeSlideLayout(activeSlide, designTheme, {
-                index: activeIndex,
-                total: slides.length,
-              })}
-              animating={false}
-              accentFont={headingFont}
-              bodyFont={bodyFont}
-            />
-          </div>
+        <div
+          className="relative w-full max-w-4xl aspect-video rounded-xl overflow-hidden border border-border/60 shadow-lg bg-white"
+          style={{ containerType: "inline-size" }}
+        >
+          <SlideStage
+            desc={computeSlideLayout(activeSlide, designTheme, {
+              index: activeIndex,
+              total: slides.length,
+            })}
+            animating={false}
+            accentFont={headingFont}
+            bodyFont={bodyFont}
+          />
         </div>
 
         {/* Controls */}
@@ -208,24 +209,23 @@ export default function ShareView() {
             <button
               key={slide.id || index}
               onClick={() => setActiveIndex(index)}
-              className={`w-28 aspect-video rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+              className={`relative w-28 aspect-video rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
                 index === activeIndex
                   ? "border-orange-500 shadow-md"
                   : "border-border/60 hover:border-foreground/30 opacity-70 hover:opacity-100"
               }`}
+              style={{ containerType: "inline-size" }}
               title={`Slide ${index + 1}`}
             >
-              <div className="w-full h-full" style={{ containerType: "inline-size" }}>
-                <SlideStage
-                  desc={computeSlideLayout(slide, designTheme, {
-                    index,
-                    total: slides.length,
-                  })}
-                  animating={false}
-                  accentFont={headingFont}
-                  bodyFont={bodyFont}
-                />
-              </div>
+              <SlideStage
+                desc={computeSlideLayout(slide, designTheme, {
+                  index,
+                  total: slides.length,
+                })}
+                animating={false}
+                accentFont={headingFont}
+                bodyFont={bodyFont}
+              />
             </button>
           ))}
         </div>
@@ -246,9 +246,20 @@ export default function ShareView() {
               Exit
             </button>
           </div>
-          <div className="flex-1 flex items-center justify-center p-8">
+
+          {/* Stage: prev/next arrows + current slide */}
+          <div className="flex-1 flex items-center justify-center gap-4 p-6 md:p-8 min-h-0">
+            <button
+              onClick={() => setActiveIndex((p) => Math.max(0, p - 1))}
+              disabled={activeIndex === 0}
+              aria-label="Previous slide"
+              className="shrink-0 flex items-center justify-center w-11 h-11 rounded-full border border-white/10 bg-card/5 hover:bg-card/10 text-white shadow-xl active:scale-95 transition-all disabled:opacity-15 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+
             <div
-              className="w-[min(1280px,90vw)] aspect-video overflow-hidden rounded-2xl shadow-2xl"
+              className="relative w-[min(1000px,72vw)] aspect-video overflow-hidden rounded-2xl shadow-2xl"
               style={{ containerType: "inline-size" }}
             >
               <SlideStage
@@ -260,6 +271,48 @@ export default function ShareView() {
                 accentFont={headingFont}
                 bodyFont={bodyFont}
               />
+            </div>
+
+            <button
+              onClick={() => setActiveIndex((p) => Math.min(slides.length - 1, p + 1))}
+              disabled={activeIndex === slides.length - 1}
+              aria-label="Next slide"
+              className="shrink-0 flex items-center justify-center w-11 h-11 rounded-full border border-white/10 bg-card/5 hover:bg-card/10 text-white shadow-xl active:scale-95 transition-all disabled:opacity-15 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Bottom control bar: counter + all-slide thumbnail strip */}
+          <div className="pb-5 pt-2 flex flex-col items-center gap-3 select-none">
+            <span className="text-xs font-bold text-zinc-300 tracking-wider">
+              SLIDE {(activeIndex + 1).toString().padStart(2, "0")} OF {slides.length.toString().padStart(2, "0")}
+            </span>
+            <div className="flex flex-wrap justify-center gap-2 px-4">
+              {slides.map((slide, index) => (
+                <button
+                  key={slide.id || index}
+                  onClick={() => setActiveIndex(index)}
+                  className={`relative w-20 aspect-video rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                    index === activeIndex
+                      ? "border-orange-500 ring-1 ring-orange-500/50"
+                      : "border-white/10 opacity-60 hover:opacity-100"
+                  }`}
+                  style={{ containerType: "inline-size" }}
+                  title={`Slide ${index + 1}`}
+                  aria-label={`Go to slide ${index + 1}`}
+                >
+                  <SlideStage
+                    desc={computeSlideLayout(slide, designTheme, {
+                      index,
+                      total: slides.length,
+                    })}
+                    animating={false}
+                    accentFont={headingFont}
+                    bodyFont={bodyFont}
+                  />
+                </button>
+              ))}
             </div>
           </div>
         </div>
