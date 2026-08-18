@@ -241,6 +241,7 @@ function applyOverrides(desc, overrides) {
     if (heading.x !== undefined) desc.texts[0].x = heading.x;
     if (heading.y !== undefined) desc.texts[0].y = heading.y;
     if (heading.size !== undefined) desc.texts[0].size = heading.size;
+    if (heading.font !== undefined) desc.texts[0].font = heading.font;
   }
   const bullets = overrides.bullets || [];
   // content-only / section-divider bullets
@@ -250,6 +251,7 @@ function applyOverrides(desc, overrides) {
     if (o.x !== undefined) b.x = o.x;
     if (o.y !== undefined) b.y = o.y;
     if (o.size !== undefined) b.size = o.size;
+    if (o.font !== undefined) b.font = o.font;
   });
   // two-column bullets (left = first ceil(n/2), right = the rest — same split
   // the twoColumn builder uses)
@@ -261,6 +263,7 @@ function applyOverrides(desc, overrides) {
       if (o.x !== undefined) col.x = o.x;
       if (o.y !== undefined) b.y = o.y;
       if (o.size !== undefined) b.size = o.size;
+      if (o.font !== undefined) b.font = o.font;
     });
   });
   // modern cards (card i -> bullet i+1, bullets[0] is the intro)
@@ -270,12 +273,14 @@ function applyOverrides(desc, overrides) {
     if (o.x !== undefined) c.x = o.x;
     if (o.y !== undefined) c.y = o.y;
     if (o.size !== undefined) c.titleSize = o.size;
+    if (o.font !== undefined) c.font = o.font;
   });
   // subtitle / intro text block (texts[1]) is bullet 0
   if (bullets[0] && desc.texts?.[1]) {
     if (bullets[0].x !== undefined) desc.texts[1].x = bullets[0].x;
     if (bullets[0].y !== undefined) desc.texts[1].y = bullets[0].y;
     if (bullets[0].size !== undefined) desc.texts[1].size = bullets[0].size;
+    if (bullets[0].font !== undefined) desc.texts[1].font = bullets[0].font;
   }
 }
 

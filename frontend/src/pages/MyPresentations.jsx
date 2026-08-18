@@ -53,6 +53,7 @@ export default function MyPresentations() {
             title: record?.title || "Untitled Presentation",
             themeId: record?.theme || "custom",
             theme: content.theme || null,
+            fonts: content.fonts || null,
           },
         });
         return;

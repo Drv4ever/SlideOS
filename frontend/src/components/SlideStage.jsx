@@ -31,6 +31,32 @@ const ICON_REGISTRY = {
   Sparkles,
 };
 
+// Handwriting/cursive fonts that ship with Microsoft Office (Windows + Mac), so
+// the exported PPTX renders them on any Office machine. When one is missing in
+// the browser (e.g. a viewer's OS), we fall back to the generic `cursive` family
+// instead of a plain sans-serif, keeping the handwritten look.
+const CURSIVE_FONTS = new Set([
+  "Comic Sans MS",
+  "Segoe Script",
+  "Segoe Print",
+  "Brush Script MT",
+  "Lucida Handwriting",
+  "Kristen ITC",
+  "Marker Felt",
+  "Chalkboard SE",
+  "Bradley Hand",
+  "Snell Roundhand",
+  "Papyrus",
+  "Noteworthy",
+]);
+
+function fontFamily(name) {
+  const family = name || "sans-serif";
+  const quoted = /\s/.test(family) ? `'${family}'` : family;
+  const generic = CURSIVE_FONTS.has(family) ? "cursive" : "sans-serif";
+  return `${quoted}, ${generic}`;
+}
+
 // Shared designed slide renderer (block design).
 // Renders the design description from computeSlideLayout on a 10 x 5.625 in
 // slide: accent bar, serif headings, cards, image panels, big stat, footers.
@@ -93,7 +119,7 @@ export function SlideStage({ desc, animating, accentFont, bodyFont }) {
             fontWeight: 700,
             color: desc.decor.watermark.color,
             opacity: desc.decor.watermark.opacity,
-            fontFamily: `${accentFont}, sans-serif`,
+            fontFamily: fontFamily(accentFont),
             lineHeight: 1,
             textAlign: "right",
             letterSpacing: "0.02em",
@@ -212,7 +238,7 @@ export function SlideStage({ desc, animating, accentFont, bodyFont }) {
             fontSize: pt(t.size),
             fontWeight: t.bold ? 700 : 400,
             color: t.color,
-            fontFamily: `${t.font || bodyFont}, sans-serif`,
+            fontFamily: fontFamily(t.font || bodyFont),
             textAlign: t.align || "left",
             lineHeight: 1.15,
             overflow: "hidden",
@@ -267,7 +293,7 @@ export function SlideStage({ desc, animating, accentFont, bodyFont }) {
             style={{
               fontSize: pt(c.titleSize || 15),
               fontWeight: 700,
-              fontFamily: `${accentFont}, sans-serif`,
+              fontFamily: fontFamily(c.font || accentFont),
               color: c.titleColor || "#111827",
               lineHeight: 1.1,
             }}
@@ -278,7 +304,7 @@ export function SlideStage({ desc, animating, accentFont, bodyFont }) {
             <div
               style={{
                 fontSize: pt(c.bodySize || 11),
-                fontFamily: `${bodyFont}, sans-serif`,
+                fontFamily: fontFamily(c.font || bodyFont),
                 color: "#3A3A3A",
                 marginTop: `${pctH(0.05)}%`,
                 whiteSpace: "pre-wrap",
@@ -337,7 +363,7 @@ export function SlideStage({ desc, animating, accentFont, bodyFont }) {
             width: `${pctW(b.w)}%`,
             height: `${pctH(b.h)}%`,
             fontSize: pt(b.size),
-            fontFamily: `${b.font || bodyFont}, sans-serif`,
+            fontFamily: fontFamily(b.font || bodyFont),
             color: b.color,
             lineHeight: 1.2,
             overflow: "hidden",
@@ -363,7 +389,7 @@ export function SlideStage({ desc, animating, accentFont, bodyFont }) {
                 height: `${pctH(0.4)}%`,
                 fontSize: pt(col.titleSize || 18),
                 fontWeight: 700,
-                fontFamily: `${accentFont}, sans-serif`,
+                fontFamily: fontFamily(accentFont),
                 color: col.titleColor || "#111827",
                 lineHeight: 1.1,
               }}
@@ -381,7 +407,7 @@ export function SlideStage({ desc, animating, accentFont, bodyFont }) {
               width: `${pctW(col.w)}%`,
               height: `${pctH(0.5)}%`,
               fontSize: pt(item.size || 17),
-              fontFamily: `${item.font || bodyFont}, sans-serif`,
+              fontFamily: fontFamily(item.font || bodyFont),
               color: item.color,
               lineHeight: 1.2,
               overflow: "hidden",

@@ -193,10 +193,17 @@ export default function PresentationPreview() {
   const fullTheme =
     selectedTheme || themePalette[themeId] || themePalette.cornflower;
   const themeColors = fullTheme?.colors || themePalette.cornflower.colors;
+  const customFonts = state?.fonts || null;
   const headingFont =
-    fullTheme?.fontFamily?.heading || fullTheme?.fonts?.heading || "Space Grotesk";
+    customFonts?.heading ||
+    fullTheme?.fontFamily?.heading ||
+    fullTheme?.fonts?.heading ||
+    "Space Grotesk";
   const bodyFont =
-    fullTheme?.fontFamily?.body || fullTheme?.fonts?.body || "DM Sans";
+    customFonts?.body ||
+    fullTheme?.fontFamily?.body ||
+    fullTheme?.fonts?.body ||
+    "DM Sans";
 
   // Shared theme shape consumed by computeSlideLayout (same as Present/Export).
   const designTheme = useMemo(
@@ -454,7 +461,11 @@ export default function PresentationPreview() {
                 textAmount, 
                 presentationId, 
                 title: title.trim(), 
-                themeId
+                themeId,
+                fonts: {
+                  heading: headingFont,
+                  body: bodyFont,
+                },
               } 
             })}
             className="flex items-center gap-1.5 cursor-pointer h-9 px-4 rounded-lg text-sm mr-4"

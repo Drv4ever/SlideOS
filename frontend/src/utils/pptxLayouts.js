@@ -396,7 +396,7 @@ export async function exportSlideWithElements(slide, slideData, themeColors, bod
         y: c.y + 0.12,
         w: titleW,
         h: 0.34,
-        fontFace: theme.headingFont,
+        fontFace: c.font || theme.headingFont,
         fontSize: c.titleSize || 15,
         bold: true,
         color: normalizeHex(c.titleColor || theme.text),
@@ -412,7 +412,7 @@ export async function exportSlideWithElements(slide, slideData, themeColors, bod
         h: c.h - 0.58,
         fontSize: c.bodySize || 11,
         color: normalizeHex("3A3A3A"),
-        fontFace: theme.bodyFont,
+        fontFace: c.font || theme.bodyFont,
         valign: "top",
         fit: "shrink",
       });

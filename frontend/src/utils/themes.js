@@ -134,6 +134,51 @@ export const themes = [
       textMuted: '#94a3b8',
     },
   },
+  {
+    name: 'Cursive Notes',
+    id: 'cursive',
+    fontFamily: { heading: 'Segoe Script', body: 'Segoe Print' },
+    headingWeight: 700,
+    colors: {
+      primary: '#4f46e5',
+      accent: '#f59e0b',
+      background: '#fffdf5',
+      surface: '#eef2ff',
+      border: '#e0e7ff',
+      text: '#312e81',
+      textMuted: '#6b7280',
+    },
+  },
+  {
+    name: 'Brush Script',
+    id: 'brush',
+    fontFamily: { heading: 'Brush Script MT', body: 'Comic Sans MS' },
+    headingWeight: 700,
+    colors: {
+      primary: '#9a3412',
+      accent: '#0f766e',
+      background: '#fffaf5',
+      surface: '#fef3e2',
+      border: '#f3e0cc',
+      text: '#431407',
+      textMuted: '#8a6a4f',
+    },
+  },
+  {
+    name: 'Handwritten',
+    id: 'handwritten',
+    fontFamily: { heading: 'Lucida Handwriting', body: 'Comic Sans MS' },
+    headingWeight: 700,
+    colors: {
+      primary: '#be185d',
+      accent: '#7c3aed',
+      background: '#ffffff',
+      surface: '#fdf2f8',
+      border: '#fbcfe8',
+      text: '#500724',
+      textMuted: '#9d6b85',
+    },
+  },
 ];
 
 export const CURATED_LOOKUP = Object.fromEntries(
@@ -142,3 +187,27 @@ export const CURATED_LOOKUP = Object.fromEntries(
     { name: t.name, colors: t.colors, fontFamily: t.fontFamily, headingWeight: t.headingWeight },
   ])
 );
+
+// Fonts offered in the per-presentation font picker. Includes the fonts the
+// themes already use plus handwriting/cursive fonts that ship with Microsoft
+// Office, so a picked font also holds up in the exported PPTX.
+export const FONT_CHOICES = [
+  { label: "Space Grotesk", value: "Space Grotesk" },
+  { label: "DM Sans", value: "DM Sans" },
+  { label: "Outfit", value: "Outfit" },
+  { label: "Sora", value: "Sora" },
+  { label: "Inter", value: "Inter" },
+  { label: "Clash Display", value: "Clash Display" },
+  { label: "General Sans", value: "General Sans" },
+  { label: "Playfair Display", value: "Playfair Display" },
+  { label: "Cormorant Garamond", value: "Cormorant Garamond" },
+  { label: "Source Sans 3", value: "Source Sans 3" },
+  { label: "Georgia", value: "Georgia" },
+  { label: "Times New Roman", value: "Times New Roman" },
+  { label: "Arial", value: "Arial" },
+  { label: "Comic Sans MS", value: "Comic Sans MS" },
+  { label: "Brush Script MT", value: "Brush Script MT" },
+  { label: "Lucida Handwriting", value: "Lucida Handwriting" },
+  { label: "Segoe Script", value: "Segoe Script" },
+  { label: "Segoe Print", value: "Segoe Print" },
+];

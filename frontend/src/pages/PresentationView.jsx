@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import PptxGenJS from "pptxgenjs";
 import { updatePresentation } from "../services/presentationService";
 import { CURATED_LOOKUP } from "../utils/slideModel";
+import { FONT_CHOICES } from "../utils/themes";
 import {
   defineMaster,
   exportSlideWithElements,
@@ -128,6 +129,12 @@ export default function PresentationView() {
     (CURATED_LOOKUP[themeId]?.fontFamily?.heading) ||
     bodyFont;
 
+  // Per-presentation custom fonts (picked in the Design tab, persisted with the
+  // deck) override the theme's bundled fonts wherever the deck is rendered.
+  const customFonts = state?.fonts || null;
+  const resolvedBodyFont = customFonts?.body || bodyFont;
+  const resolvedHeadingFont = customFonts?.heading || headingFont;
+
   // Design theme is state so the Quick Theme buttons actually drive the
   // design engine (accent bar, headings, fills) that every surface renders.
   const [designTheme, setDesignTheme] = useState({
@@ -138,8 +145,8 @@ export default function PresentationView() {
     border: defaultTheme.border,
     text: defaultTheme.text,
     textMuted: defaultTheme.textMuted,
-    headingFont: headingFont || "Georgia",
-    bodyFont: bodyFont || "Arial",
+    headingFont: resolvedHeadingFont || "Georgia",
+    bodyFont: resolvedBodyFont || "Arial",
   });
 
   // Blank slide used when a deck has no slides yet.
@@ -238,7 +245,12 @@ export default function PresentationView() {
   };
 
   const handleBlockSelect = (block) => {
-    setSelectedBlock({ role: block.role, index: block.index, size: block.size });
+    setSelectedBlock({
+      role: block.role,
+      index: block.index,
+      size: block.size,
+      font: block.font,
+    });
   };
 
   const handleBlockUpdate = (role, index, value) => {
@@ -269,6 +281,21 @@ export default function PresentationView() {
       const bullets = [...(ov.bullets || [])];
       while (bullets.length <= index) bullets.push({});
       bullets[index] = { ...(bullets[index] || {}), size: clamped };
+      return { ...ov, bullets };
+    });
+  };
+
+  // Per-block font override: written into design.overrides so the canvas,
+  // thumbnails, present overlay and PPTX export all render the same font.
+  const handleBlockFont = (role, index, font) => {
+    setSelectedBlock((prev) => (prev ? { ...prev, font } : prev));
+    updateOverrides((ov) => {
+      if (role === "heading") {
+        return { ...ov, heading: { ...(ov.heading || {}), font } };
+      }
+      const bullets = [...(ov.bullets || [])];
+      while (bullets.length <= index) bullets.push({});
+      bullets[index] = { ...(bullets[index] || {}), font };
       return { ...ov, bullets };
     });
   };
@@ -444,7 +471,7 @@ export default function PresentationView() {
           color: defaultTheme.text,
           width: 860,
           height: 60,
-          fontFamily: headingFont,
+          fontFamily: resolvedHeadingFont,
         }
       ]
     };
@@ -663,6 +690,10 @@ await pres.writeFile({ fileName: `${presentationTitle || "Presentation"}.pptx` }
           editorSlides: slides,
           slideNotes,
           textAmount,
+          fonts: {
+            heading: designTheme.headingFont,
+            body: designTheme.bodyFont,
+          },
         },
       });
       
@@ -714,7 +745,11 @@ await pres.writeFile({ fileName: `${presentationTitle || "Presentation"}.pptx` }
                 presentationId,
                 title: presentationTitle,
                 themeId,
-                textAmount
+                textAmount,
+                fonts: {
+                  heading: designTheme.headingFont,
+                  body: designTheme.bodyFont,
+                },
               } 
             })}
             className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors w-fit cursor-pointer mb-3"
@@ -922,6 +957,46 @@ await pres.writeFile({ fileName: `${presentationTitle || "Presentation"}.pptx` }
                 </div>
               </div>
 
+              {/* Fonts */}
+              <div className="flex flex-col gap-2.5">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none">
+                  Fonts
+                </span>
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="heading-font" className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    Heading font
+                  </label>
+                  <select
+                    id="heading-font"
+                    value={designTheme.headingFont}
+                    onChange={(e) =>
+                      setDesignTheme((prev) => ({ ...prev, headingFont: e.target.value }))
+                    }
+                    className="w-full bg-sidebar-accent border border-border/80 rounded-xl px-3 py-2.5 text-sm text-sidebar-accent-foreground focus:ring-1.5 focus:ring-orange-500/25 focus:border-orange-500 outline-none transition-all cursor-pointer"
+                  >
+                    {FONT_CHOICES.map((f) => (
+                      <option key={f.value} value={f.value}>{f.label}</option>
+                    ))}
+                  </select>
+
+                  <label htmlFor="body-font" className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    Body font
+                  </label>
+                  <select
+                    id="body-font"
+                    value={designTheme.bodyFont}
+                    onChange={(e) =>
+                      setDesignTheme((prev) => ({ ...prev, bodyFont: e.target.value }))
+                    }
+                    className="w-full bg-sidebar-accent border border-border/80 rounded-xl px-3 py-2.5 text-sm text-sidebar-accent-foreground focus:ring-1.5 focus:ring-orange-500/25 focus:border-orange-500 outline-none transition-all cursor-pointer"
+                  >
+                    {FONT_CHOICES.map((f) => (
+                      <option key={f.value} value={f.value}>{f.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               {/* Speaker Notes */}
               <div className="flex flex-col gap-2 flex-1 min-h-[140px]">
                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none">
@@ -956,8 +1031,8 @@ await pres.writeFile({ fileName: `${presentationTitle || "Presentation"}.pptx` }
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
         
         {/* Floating Context Toolbar */}
-        <div className="w-full max-w-5xl mx-auto px-6 pt-4 relative z-10">
-          <div className="bg-card/80 backdrop-blur-md border border-border/90 rounded-2xl p-2.5 flex items-center justify-between shadow-[0_20px_48px_-10px_rgba(15,23,42,0.08),0_4px_16px_rgba(15,23,42,0.02)]">
+        <div className="w-full p-6 flex justify-center relative z-10">
+          <div className="bg-card/80 backdrop-blur-md border border-border/90 rounded-2xl p-2.5 flex items-center flex-wrap gap-3 shadow-[0_20px_48px_-10px_rgba(15,23,42,0.08),0_4px_16px_rgba(15,23,42,0.02)]">
             
             <SidebarTrigger className="mr-1" />
 
@@ -1003,6 +1078,29 @@ await pres.writeFile({ fileName: `${presentationTitle || "Presentation"}.pptx` }
 
               {selectedBlock && (
                 <div className="flex items-center gap-2 border-l border-border pl-3">
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    Font:
+                  </span>
+                  <select
+                    value={
+                      selectedBlock.font ||
+                      (selectedBlock.role === "heading"
+                        ? designTheme.headingFont
+                        : designTheme.bodyFont)
+                    }
+                    onChange={(e) =>
+                      handleBlockFont(
+                        selectedBlock.role,
+                        selectedBlock.index,
+                        e.target.value
+                      )
+                    }
+                    className="bg-card border border-border/80 rounded-lg px-2 py-1 text-xs text-foreground outline-none focus:ring-1.5 focus:ring-orange-500/25 focus:border-orange-500 cursor-pointer"
+                  >
+                    {FONT_CHOICES.map((f) => (
+                      <option key={f.value} value={f.value}>{f.label}</option>
+                    ))}
+                  </select>
                   <span className="text-xs font-semibold text-muted-foreground">
                     {selectedBlock.role === "heading" ? "Heading size:" : "Text size:"}
                   </span>

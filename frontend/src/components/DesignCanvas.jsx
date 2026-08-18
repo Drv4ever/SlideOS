@@ -24,6 +24,28 @@ const inToPx = (v, axis) =>
 const pxToIn = (v, axis) =>
   axis === "x" ? (v / PX_W) * SLIDE_W : (v / PX_H) * SLIDE_H;
 
+// Same handwriting-font fallback as SlideStage, so the editor's editable text
+// matches the rendered slide for cursive themes.
+const CURSIVE_FONTS = new Set([
+  "Comic Sans MS",
+  "Segoe Script",
+  "Segoe Print",
+  "Brush Script MT",
+  "Lucida Handwriting",
+  "Kristen ITC",
+  "Marker Felt",
+  "Chalkboard SE",
+  "Bradley Hand",
+  "Snell Roundhand",
+  "Papyrus",
+  "Noteworthy",
+]);
+
+function ff(name) {
+  const q = /\s/.test(name) ? `'${name}'` : name;
+  return `${q}, ${CURSIVE_FONTS.has(name) ? "cursive" : "sans-serif"}`;
+}
+
 // Map every design block back to its canonical source role, so content edits
 // and drags write to the same role fields the layout engine reads.
 function buildEditMap(desc, roles) {
@@ -66,7 +88,7 @@ function buildEditMap(desc, roles) {
         key: `bullet-${idx}`,
         role: "bullet",
         index: idx,
-        box: { x: col.x, y: b.y, w: col.w, h: 0.5 },
+        box: { x: col.x, y: b.y, w: col.w, h: 0.5, font: b.font },
         kind: "text",
       });
     })
@@ -125,7 +147,7 @@ export default function DesignCanvas({
             style={{
               fontSize: (block.box.titleSize || 15) * PX_PER_PT,
               fontWeight: 700,
-              fontFamily: `${headingFont}, sans-serif`,
+              fontFamily: ff(block.box.font || headingFont),
               color: block.box.titleColor || "#111827",
               lineHeight: 1.1,
             }}
@@ -143,7 +165,7 @@ export default function DesignCanvas({
             className="outline-none select-text"
             style={{
               fontSize: (block.box.bodySize || 11) * PX_PER_PT,
-              fontFamily: `${bodyFont}, sans-serif`,
+              fontFamily: ff(block.box.font || bodyFont),
               color: "#3A3A3A",
               whiteSpace: "pre-wrap",
               lineHeight: 1.2,
@@ -165,7 +187,7 @@ export default function DesignCanvas({
         style={{
           fontSize: (block.box.size || 18) * PX_PER_PT,
           fontWeight: block.role === "heading" ? 700 : 400,
-          fontFamily: `${block.box.font || bodyFont}, sans-serif`,
+          fontFamily: ff(block.box.font || (block.role === "heading" ? headingFont : bodyFont)),
           color: block.box.color || theme.text,
           textAlign: block.box.align || "left",
           lineHeight: 1.15,
@@ -250,6 +272,7 @@ export default function DesignCanvas({
                   role: block.role,
                   index: block.index,
                   size: block.box.size,
+                  font: block.box.font,
                 })
               }
               onDoubleClick={(e) => {
