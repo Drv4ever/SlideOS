@@ -13,6 +13,7 @@ import {
   SlidersHorizontal
 } from 'lucide-react';
 import { AuthForm } from '../components/AuthForm';
+import LandingScrollSections from '../components/LandingScrollSections';
 
 export default function LandingPage({ onAuthSuccess, theme }) {
   const [promptText, setPromptText] = useState('');
@@ -247,6 +248,14 @@ export default function LandingPage({ onAuthSuccess, theme }) {
           </div>
         </div>
       </main>
+
+      {/* Scroll-triggered sections added below the hero (existing hero untouched) */}
+      <LandingScrollSections
+        onGetStarted={() => {
+          setAuthTab('register');
+          setShowAuthModal(true);
+        }}
+      />
 
       {/* 3. Footer branding details */}
       <footer className="w-full py-6 border-t border-border bg-background/60 relative z-10">
