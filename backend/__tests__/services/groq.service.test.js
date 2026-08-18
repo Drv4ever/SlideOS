@@ -1,4 +1,4 @@
-import { generateWithGroq } from "../../src/services/groq.service.js";
+import { generateWithGroq, normalizeSlideCount } from "../../src/services/groq.service.js";
 
 // Mock global fetch
 global.fetch = jest.fn();
@@ -62,6 +62,8 @@ describe("generateWithGroq", () => {
     expect(body.model).toBe("openai/gpt-oss-120b");
     expect(body.temperature).toBe(0.7);
     expect(body.response_format).toEqual({ type: "json_object" });
+    // Adaptive output cap sized to the deck (1024 + 1 * 256 = 1280).
+    expect(body.max_tokens).toBe(1280);
     expect(body.messages[0]).toHaveProperty("role", "system");
     expect(body.messages[0]).toHaveProperty("content");
     expect(body.messages[1]).toEqual({ role: "user", content: "Topic: Test topic" });
@@ -185,5 +187,59 @@ describe("generateWithGroq", () => {
     expect(result.title).toBe("Redesigned");
     expect(result.slides[0].heading).toBe("New Heading");
     expect(result.slides[0].layout).toBe("content-only");
+  });
+
+  describe("normalizeSlideCount", () => {
+    test("should pad a short deck up to the requested count", () => {
+      const deck = {
+        title: "Test",
+        slides: Array.from({ length: 7 }, (_, i) => ({
+          slideNumber: i + 1,
+          heading: `Slide ${i + 1}`,
+          content: ["point"],
+          imageKeyword: "image",
+          layout: "content-only",
+        })),
+      };
+
+      const result = normalizeSlideCount(deck, 10);
+
+      expect(result.slides).toHaveLength(10);
+      result.slides.forEach((s, i) => expect(s.slideNumber).toBe(i + 1));
+      expect(result.slides[9].heading).toContain("(continued)");
+    });
+
+    test("should trim a deck that has more slides than requested", () => {
+      const deck = {
+        title: "Test",
+        slides: Array.from({ length: 12 }, (_, i) => ({
+          slideNumber: i + 1,
+          heading: `Slide ${i + 1}`,
+          content: ["point"],
+          imageKeyword: "image",
+          layout: "content-only",
+        })),
+      };
+
+      const result = normalizeSlideCount(deck, 10);
+
+      expect(result.slides).toHaveLength(10);
+      result.slides.forEach((s, i) => expect(s.slideNumber).toBe(i + 1));
+    });
+
+    test("should renumber slides sequentially when the LLM skipped numbers", () => {
+      const deck = {
+        title: "Test",
+        slides: [
+          { slideNumber: 1, heading: "A", content: [], imageKeyword: "k", layout: "content-only" },
+          { slideNumber: 3, heading: "B", content: [], imageKeyword: "k", layout: "content-only" },
+          { slideNumber: 9, heading: "C", content: [], imageKeyword: "k", layout: "content-only" },
+        ],
+      };
+
+      const result = normalizeSlideCount(deck, 3);
+
+      expect(result.slides.map((s) => s.slideNumber)).toEqual([1, 2, 3]);
+    });
   });
 });

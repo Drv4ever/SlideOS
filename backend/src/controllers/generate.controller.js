@@ -20,7 +20,13 @@ export const generatePresentation = async (req, res) => {
     } catch (aiError) {
       console.error("Groq API error:", aiError.message);
       const errMsg = aiError.message;
-      if (
+      // The LLM returned unparseable JSON — a generation-quality problem, not an
+      // API access problem. Fall back so the user still gets a deck.
+      const isJsonFailure =
+        errMsg.includes("json_validate_failed") ||
+        errMsg.includes("Failed to validate JSON") ||
+        errMsg.includes("was not valid JSON");
+      if (!isJsonFailure && (
         errMsg.includes("GROQ_API_KEY") ||
         errMsg.includes("401") ||
         errMsg.includes("403") ||
@@ -33,7 +39,7 @@ export const generatePresentation = async (req, res) => {
         errMsg.includes("rate limit") ||
         errMsg.includes("Rate limit") ||
         errMsg.includes("insufficient_quota")
-      ) {
+      )) {
         throw new Error(`Groq API failed: ${errMsg}`);
       }
       console.warn("Groq failed, using fallback generation");

@@ -1,6 +1,14 @@
 import { toOutlineSlide } from "./designedLayouts";
+import { themes } from "./themes";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+
+// Resolve a theme id to its full brief (colors, fonts) so the backend can tell
+// the LLM what the theme looks like instead of a bare id.
+function themePayload(themeId) {
+  const theme = themes.find((t) => t.id === themeId);
+  return theme || themeId || "cornflower";
+}
 
 // Serialize slides into a compact outline the LLM can redesign.
 // The design engine derives the same roles from this shape, so nothing is lost
@@ -88,7 +96,7 @@ async function callRemix({ slides, prompt, themeId, textAmount, tone, audience, 
       tone: tone || "neutral",
       audience: audience || "auto",
       scenario: scenario || "auto",
-      theme: themeId,
+      theme: themePayload(themeId),
       mode: "remix",
     }),
   });

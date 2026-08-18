@@ -155,7 +155,7 @@ export function PresentationGenerator({ onThemeChange }) {
           tone,
           audience,
           scenario,
-          theme: selectedTheme,
+          theme: currentTheme || selectedTheme,
         }),
       });
       const data = await res.json();

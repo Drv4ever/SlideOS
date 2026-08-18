@@ -1,3 +1,4 @@
+import { THEME_CATALOG } from "./themeBrief.js";
 
 const IMAGE_KEYWORDS = [
   "professional workspace", "data analytics dashboard", "team collaboration",
@@ -6,7 +7,30 @@ const IMAGE_KEYWORDS = [
   "sustainable energy", "abstract geometry", "creative brainstorming"
 ];
 
+// Theme-appropriate visual keywords so the fallback generator still reflects
+// the selected theme's mood in its image choices.
+const THEME_VISUALS = {
+  cornflower: ["clean tech office", "blue abstract waves", "cloud computing"],
+  cosmos: ["purple nebula", "creative studio lights", "golden geometric"],
+  fluent: ["minimal product mockup", "crisp interface design", "modern office"],
+  dalibio: ["art gallery", "editorial studio", "elegant serif print"],
+  noir: ["high contrast portrait", "monochrome cityscape", "black gold texture"],
+  terra: ["earthy landscapes", "warm wooden textures", "natural materials"],
+  indigo: ["vibrant startup office", "orange gradient abstract", "energetic team"],
+  orbit: ["futuristic space tech", "neon green circuits", "orbit rings"],
+  midnight: ["dark night skyline", "moonlit ocean", "dark premium glass"],
+  cursive: ["handwritten notes", "notebook paper", "colored pencils"],
+  brush: ["paint brushes", "watercolor splash", "craft workshop"],
+  handwritten: ["journal writing", "warm storybook scene", "personal letter"],
+};
+
 const LAYOUTS = ["title-slide", "bullets-image", "two-column", "section-divider", "bullets-image", "big-stat", "content-only", "bullets-image"];
+
+function themeIdOf(theme) {
+  if (!theme) return null;
+  if (typeof theme === "string") return theme;
+  return theme.id || null;
+}
 
 export function fakeAIGenerate({ audience ,prompt,scenario, slides, textAmount, theme , tone }) {
     const slideTemplates = [
@@ -37,6 +61,10 @@ export function fakeAIGenerate({ audience ,prompt,scenario, slides, textAmount, 
         `Leveraging best practices and technical specifications to configure environments for optimal speed and security.`,
     ];
 
+    const themeId = themeIdOf(theme);
+    const themeVisuals = THEME_VISUALS[themeId] || IMAGE_KEYWORDS;
+    const themeName = THEME_CATALOG[themeId]?.name || (typeof theme === "object" ? theme?.name : null) || themeId || "SlideOS";
+
     const generatedSlides = Array.from({ length: slides }, (_, i) => {
         const title = slideTemplates[i] || `${prompt} Analysis - Part ${i + 1}`;
         return {
@@ -46,14 +74,14 @@ export function fakeAIGenerate({ audience ,prompt,scenario, slides, textAmount, 
                 const phraseIndex = (i + j) % detailedPhrases.length;
                 return detailedPhrases[phraseIndex];
             }),
-            imageKeyword: IMAGE_KEYWORDS[i % IMAGE_KEYWORDS.length],
+            imageKeyword: themeVisuals[i % themeVisuals.length],
             layout: LAYOUTS[i % LAYOUTS.length],
         };
     });
 
     return {
         title: prompt,
-        theme,
+        theme: themeId || themeName,
         slides: generatedSlides,
     };
 }

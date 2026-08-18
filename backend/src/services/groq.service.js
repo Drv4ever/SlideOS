@@ -1,3 +1,5 @@
+import { buildThemeBrief } from "../utils/themeBrief.js";
+
 const FIELD_DEFINITIONS = `Field definitions:
 - "heading": Slide title (concise, 3-8 words)
 - "content": Array of bullet points following the text density rules
@@ -58,10 +60,13 @@ export async function generateWithGroq({
     textAmountGuideline = `Follow text density level: ${textAmount}`;
   }
 
+  const themeBrief = buildThemeBrief(theme);
+
   const sharedRules = `Rules:
-- Slides count = ${slides}
+- CRITICAL: The "slides" array MUST contain EXACTLY ${slides} slide objects. Not one more, not one less.
+- CRITICAL: slideNumber values MUST be sequential integers from 1 to ${slides} with no gaps and no duplicates.
 - Text density guideline = ${textAmountGuideline}
-- Theme = ${theme}
+- Theme brief = ${themeBrief || theme || "unspecified"}
 - Tone = ${tone}
 - Audience = ${audience || "general"}
 - Scenario = ${scenario || "educational"}
@@ -79,7 +84,7 @@ Redesign rules:
 - Reassign "layout" per the layout rules below based on each slide's purpose.
 - Provide fresh, specific "imageKeyword" values for every slide.
 
-Return STRICT JSON ONLY in this format:
+Return STRICT JSON ONLY in this format (IMPORTANT: "slides" must contain EXACTLY ${slides} objects):
 {
   "title": string,
   "slides": [
@@ -100,7 +105,7 @@ ${LAYOUT_RULES}
 ${sharedRules}`
     : `You are a professional PowerPoint presentation generator that outputs rich, structured JSON.
 
-Return STRICT JSON ONLY in this format:
+Return STRICT JSON ONLY in this format (IMPORTANT: "slides" must contain EXACTLY ${slides} objects):
 {
   "title": string,
   "slides": [
@@ -133,6 +138,12 @@ ${sharedRules}`;
         response_format: {
           type: "json_object",
         },
+        // Adaptive output cap sized to the deck so a large deck (15+ slides)
+        // is never truncated mid-JSON by Groq's default completion limit. A
+        // too-tight cap makes the model close the JSON early with fewer slides
+        // (still valid JSON, silently wrong count), so keep ~256 tokens per
+        // slide plus a healthy preamble allowance.
+        max_tokens: Math.min(8192, 1024 + Number(slides) * 256),
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: isRemix ? prompt : `Topic: ${prompt}` },
@@ -153,9 +164,36 @@ ${sharedRules}`;
     }
 
     const cleanRaw = raw.replace(/```json|```/gi, "").trim();
-    return JSON.parse(cleanRaw);
+    const parsed = JSON.parse(cleanRaw);
+    return normalizeSlideCount(parsed, slides);
   } catch (err) {
     console.error("Groq API error:", err.message || err);
     throw err;
   }
+}
+
+// Single source of truth for slide count. LLMs routinely under-report slide
+// counts even when the prompt demands them; the requested `slides` value is the
+// contract, so trim any extras and pad short decks (cycling existing slides)
+// until the array is EXACTLY `targetCount` long, renumbering sequentially.
+// This guarantees the pipeline can never return the wrong number of slides.
+export function normalizeSlideCount(deck, targetCount) {
+  if (!deck || !Array.isArray(deck.slides)) return deck;
+
+  const target = Math.max(1, Math.min(20, Number(targetCount) || deck.slides.length));
+
+  let slides = deck.slides.slice(0, target);
+  if (slides.length === 0) {
+    slides = [{ heading: "Introduction", content: ["Key points"], imageKeyword: "presentation", layout: "content-only" }];
+  }
+  while (slides.length < target) {
+    const src = deck.slides[slides.length % deck.slides.length] || slides[slides.length - 1];
+    slides.push({
+      ...src,
+      heading: `${src.heading || "Key Point"} (continued)`,
+    });
+  }
+  slides = slides.map((slide, i) => ({ ...slide, slideNumber: i + 1 }));
+
+  return { ...deck, slides };
 }
