@@ -61,3 +61,21 @@ export const deletePresentation = async (id) => {
   if (!response.ok) throw new Error("Failed to delete presentation");
   return response.json();
 };
+
+// Toggle public sharing for a deck (owner-only).
+export const setPresentationPublic = async (id, isPublic) => {
+  return updatePresentation(id, { isPublic });
+};
+
+// Public read-only deck fetch — no auth token, used by the /share/:id viewer.
+export const getPublicPresentation = async (id) => {
+  const response = await fetch(`${API_BASE_URL}/presentations/share/${id}`, {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data?.message || "Failed to load shared presentation");
+  }
+  return response.json();
+};

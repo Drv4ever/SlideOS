@@ -94,7 +94,8 @@ describe("remix", () => {
       const body = JSON.parse(fetch.mock.calls[0][1].body);
       expect(body.mode).toBe("remix");
       expect(body.slides).toBe(2);
-      expect(body.theme).toBe("cornflower");
+      // themePayload resolves the id to the full theme brief for the LLM.
+      expect(body.theme).toMatchObject({ id: "cornflower" });
       expect(body.textAmount).toBe("detailed");
       expect(body.prompt).toContain("Slide 1");
       expect(body.prompt).toContain("Slide 2");

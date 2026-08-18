@@ -14,3 +14,34 @@ button, a, [role="button"] {
   transition-property: background-color, border-color, color, transform, box-shadow;
   transition-duration: 150ms;
 }
+
+/* PDF export via window.print(): 16:9 landscape pages with no margins, and
+   the print deck (.print-slide) sized to one slide per page. */
+@page {
+  size: 13.333in 7.5in;
+  margin: 0;
+}
+
+@media print {
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+  }
+
+  body * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print-slide {
+    width: 13.333in !important;
+    height: 7.5in !important;
+    page-break-after: always;
+  }
+
+  .print-slide:last-child {
+    page-break-after: auto;
+  }
+}

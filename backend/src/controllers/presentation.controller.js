@@ -60,7 +60,7 @@ export const getMyPresentationById = async (req, res) => {
 export const updatePresentation = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, content, theme, slidesCount } = req.body;
+    const { title, content, theme, slidesCount, isPublic } = req.body;
 
     const presentation = await Presentation.findById(id);
     if (!presentation) {
@@ -77,12 +77,48 @@ export const updatePresentation = async (req, res) => {
     if (content) presentation.content = content;
     if (theme) presentation.theme = theme;
     if (typeof slidesCount === "number") presentation.slidesCount = slidesCount;
+    if (typeof isPublic === "boolean") presentation.isPublic = isPublic;
     if (content) presentation.markModified("content");
 
     const updatedDoc = await presentation.save();
     return res.status(200).json({ success: true, data: updatedDoc });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Public share endpoint: returns the deck WITHOUT any owner identity so it can
+// be served to anyone with the link. Only works when the owner has enabled
+// sharing (isPublic: true).
+export const getPublicPresentationById = async (req, res) => {
+  try {
+    const presentation = await Presentation.findById(req.params.id).select(
+      "title theme slidesCount content isPublic updatedAt"
+    );
+    if (!presentation) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Presentation not found" });
+    }
+    if (!presentation.isPublic) {
+      return res
+        .status(403)
+        .json({ success: false, message: "This presentation is not shared publicly." });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        _id: presentation._id,
+        title: presentation.title,
+        theme: presentation.theme,
+        slidesCount: presentation.slidesCount,
+        content: presentation.content,
+        updatedAt: presentation.updatedAt,
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
   }
 };
 

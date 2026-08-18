@@ -11,13 +11,20 @@ import {
   PlusCircle,
   Loader2,
   Sparkles,
+  Undo2,
+  Redo2,
+  ChevronUp,
+  ChevronDown,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../components/ui/button";
-import { updatePresentation } from "../services/presentationService";
 import { normalizePresentation, CURATED_LOOKUP } from "../utils/slideModel";
 import { computeSlideLayout, toOutlineSlide, updateSlideRole, addSlideRoleBullet, deleteSlideRoleBullet } from "../utils/designedLayouts";
 import { remixDeck, remixSlide } from "../utils/remix";
+import { exportDeckToPPTX } from "../utils/pptxExport";
+import { useUndoHistory } from "../hooks/useUndoHistory";
+import { useAutosave } from "../hooks/useAutosave";
 import SlideStage from "../components/SlideStage";
 
 const themePalette = CURATED_LOOKUP;
@@ -42,6 +49,7 @@ const SlideCard = memo(function SlideCard({
   onAddBullet,
   onDeleteBullet,
   onDeleteSlide,
+  onMoveSlide,
   onRemix,
   remixing,
 }) {
@@ -81,8 +89,24 @@ const SlideCard = memo(function SlideCard({
           )}
         </div>
 
-        {/* Remix + Delete Slide Buttons */}
-        <div className="flex items-center gap-1">
+        {/* Reorder + Remix + Delete Slide Buttons */}
+        <div className="flex items-center gap-0.5">
+          <button
+            onClick={() => onMoveSlide(slideIndex, -1)}
+            disabled={slideIndex === 0}
+            className="text-muted-foreground/70 hover:text-foreground hover:bg-muted p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
+            title="Move slide up"
+          >
+            <ChevronUp className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onMoveSlide(slideIndex, 1)}
+            disabled={slideIndex === total - 1}
+            className="text-muted-foreground/70 hover:text-foreground hover:bg-muted p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
+            title="Move slide down"
+          >
+            <ChevronDown className="w-4 h-4" />
+          </button>
           <button
             onClick={() => onRemix(slideIndex)}
             disabled={remixing}
@@ -228,11 +252,10 @@ export default function PresentationPreview() {
     { title: initialTitle, theme: selectedTheme, slides: initialPresentation?.slides || [] },
     themeId
   );
-  const [slides, setSlides] = useState(
+  const [slides, setSlides, { undo, redo, canUndo, canRedo }] = useUndoHistory(
     normalized.slides.map((s) => toOutlineSlide(s))
   );
   const [title, setTitle] = useState(normalized.title);
-  const [isSaving, setIsSaving] = useState(false);
   const [remixingDeck, setRemixingDeck] = useState(false);
   const [remixingIndex, setRemixingIndex] = useState(null);
 
@@ -277,12 +300,44 @@ export default function PresentationPreview() {
   }, []);
 
   const deleteBullet = useCallback((slideIndex, bulletIndex) => {
+    const target = slides[slideIndex];
+    const removed =
+      getBulletElement(target)?.items?.[bulletIndex] ??
+      target?.content?.[bulletIndex];
     setSlides((prev) =>
       prev.map((s, i) =>
         i === slideIndex ? deleteSlideRoleBullet(s, bulletIndex) : s
       )
     );
-  }, []);
+    if (removed !== undefined && removed !== null) {
+      toast("Point removed", {
+        action: {
+          label: "Undo",
+          onClick: () => {
+            setSlides((prev) =>
+              prev.map((s, i) => {
+                if (i !== slideIndex) return s;
+                const next = { ...s };
+                const elements = Array.isArray(s.elements) ? [...s.elements] : [];
+                const bulletEl = elements.find((el) => el.type === "bullet");
+                if (bulletEl) {
+                  const items = [...(bulletEl.items || [])];
+                  items.splice(Math.min(bulletIndex, items.length), 0, removed);
+                  next.elements = elements.map((el) =>
+                    el.type === "bullet" ? { ...el, items } : el
+                  );
+                }
+                const content = Array.isArray(s.content) ? [...s.content] : [];
+                content.splice(Math.min(bulletIndex, content.length), 0, removed);
+                next.content = content;
+                return next;
+              })
+            );
+          },
+        },
+      });
+    }
+  }, [slides]);
 
   const addSlide = useCallback(() => {
     setSlides((prev) => [
@@ -300,8 +355,32 @@ export default function PresentationPreview() {
   }, []);
 
   const deleteSlide = useCallback((index) => {
+    const deletedSlide = slides[index];
     setSlides((prev) => prev.filter((_, i) => i !== index));
-  }, []);
+    if (!deletedSlide) return;
+    toast("Slide deleted", {
+      action: {
+        label: "Undo",
+        onClick: () => {
+          setSlides((prev) => {
+            const next = [...prev];
+            next.splice(Math.min(index, prev.length), 0, deletedSlide);
+            return next;
+          });
+        },
+      },
+    });
+  }, [slides]);
+
+  const moveSlide = useCallback((from, to) => {
+    if (from === to || from < 0 || to < 0 || to >= slides.length) return;
+    setSlides((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  }, [slides]);
 
   // Redesign the entire deck: same content, fresh layout + copy from the LLM.
   const handleRemixDeck = useCallback(async () => {
@@ -348,34 +427,93 @@ export default function PresentationPreview() {
     [remixingIndex, slides, themeId, textAmount]
   );
 
-  const handleSaveChanges = async () => {
+  const savePayload = useMemo(
+    () => ({
+      title: title.trim() || "Untitled Presentation",
+      theme: themeId,
+      slidesCount: slides.length,
+      content: {
+        slides,
+        editorSlides: slides,
+        slideNotes: [],
+        textAmount,
+      },
+    }),
+    [title, themeId, slides, textAmount]
+  );
+  const saveSignature = useMemo(() => JSON.stringify(savePayload), [savePayload]);
+  const autosave = useAutosave({
+    id: presentationId,
+    enabled: !!presentationId,
+    payload: savePayload,
+    signature: saveSignature,
+    onError: (err) => toast.error(err.message || "Autosave failed"),
+  });
+
+  const handleSaveChanges = useCallback(async () => {
     if (!presentationId) {
-      alert("This presentation is not linked to a saved record.");
+      toast.error("This presentation is not linked to a saved record.");
       return;
     }
-
     try {
-      setIsSaving(true);
-      await updatePresentation(presentationId, {
-        title: title.trim() || "Untitled Presentation",
-        theme: themeId,
-        slidesCount: slides.length,
-        content: {
-          slides,
-          editorSlides: slides,
-          slideNotes: [],
-          textAmount,
-        },
-      });
-      
-      // Dispatch refresh event to update sidebar
+      await autosave.saveNow();
       window.dispatchEvent(new CustomEvent('refresh-sidebar-decks'));
-      alert("Presentation saved successfully");
+      toast.success("Presentation saved successfully");
     } catch (error) {
-      alert(error.message || "Failed to update presentation");
-    } finally {
-      setIsSaving(false);
+      toast.error(error.message || "Failed to update presentation");
     }
+  }, [presentationId, autosave.saveNow]);
+
+  // Deck-level undo/redo + save shortcuts (text fields keep native Ctrl+Z).
+  useEffect(() => {
+    const isEditableTarget = (target) => {
+      if (!(target instanceof HTMLElement)) return false;
+      const tag = target.tagName;
+      return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+    };
+
+    const handleKeyDown = (e) => {
+      const mod = e.ctrlKey || e.metaKey;
+      if (!mod) return;
+
+      if (e.key === "z" || e.key === "Z") {
+        if (isEditableTarget(e.target)) return;
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+      } else if (e.key === "y" || e.key === "Y") {
+        if (isEditableTarget(e.target)) return;
+        e.preventDefault();
+        redo();
+      } else if (e.key === "s" || e.key === "S") {
+        e.preventDefault();
+        handleSaveChanges();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [undo, redo, handleSaveChanges]);
+
+  /* ================= EXPORT ================= */
+
+  const handleExportPPTX = async () => {
+    try {
+      await exportDeckToPPTX({
+        slides,
+        title,
+        theme: designTheme,
+        bodyFont: designTheme.bodyFont,
+        headingFont: designTheme.headingFont,
+      });
+    } catch (error) {
+      console.error(error);
+      toast.error(error.message || "Failed to export PPTX");
+    }
+  };
+
+  const handleExportPDF = () => {
+    window.print();
   };
 
   /* ================= CHARACTER COUNT ================= */
@@ -424,10 +562,28 @@ export default function PresentationPreview() {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2 shrink-0 pr-1">
+          <button
+            onClick={undo}
+            disabled={!canUndo}
+            title="Undo (Ctrl+Z)"
+            className="p-2 rounded-lg hover:bg-accent text-muted-foreground active:scale-95 transition-all cursor-pointer disabled:opacity-40"
+          >
+            <Undo2 className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={redo}
+            disabled={!canRedo}
+            title="Redo (Ctrl+Y)"
+            className="p-2 rounded-lg hover:bg-accent text-muted-foreground active:scale-95 transition-all cursor-pointer disabled:opacity-40"
+          >
+            <Redo2 className="w-4 h-4" />
+          </button>
+
           <Button
             variant="ghost"
             onClick={handleRemixDeck}
-            disabled={remixingDeck || isSaving}
+            disabled={remixingDeck || autosave.status === "saving"}
             className="flex items-center gap-1.5 cursor-pointer h-9 px-3 rounded-lg text-sm text-orange-500 hover:text-orange-600 hover:bg-orange-500/10"
           >
             {remixingDeck ? (
@@ -441,15 +597,42 @@ export default function PresentationPreview() {
           <Button
             variant="destructive"
             onClick={handleSaveChanges}
-            disabled={!presentationId || isSaving}
+            disabled={!presentationId || autosave.status === "saving"}
             className="flex items-center gap-1.5 cursor-pointer h-9 px-3 rounded-lg text-sm"
+            title="Save (Ctrl+S)"
           >
-            {isSaving ? (
+            {autosave.status === "saving" ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <Save className="w-4 h-4" />
             )}
-            <span>{isSaving ? "Saving..." : "Save Changes"}</span>
+            <span>
+              {autosave.status === "saving"
+                ? "Saving..."
+                : autosave.status === "saved"
+                  ? "Saved"
+                  : "Save Changes"}
+            </span>
+          </Button>
+
+          <Button
+            variant="ghost"
+            onClick={handleExportPPTX}
+            className="flex items-center gap-1.5 cursor-pointer h-9 px-3 rounded-lg text-sm text-foreground/70 hover:text-foreground hover:bg-accent"
+            title="Download as PowerPoint"
+          >
+            <Download className="w-4 h-4" />
+            <span className="hidden lg:inline">PPTX</span>
+          </Button>
+
+          <Button
+            variant="ghost"
+            onClick={handleExportPDF}
+            className="flex items-center gap-1.5 cursor-pointer h-9 px-3 rounded-lg text-sm text-foreground/70 hover:text-foreground hover:bg-accent"
+            title="Save as PDF via browser print"
+          >
+            <Download className="w-4 h-4" />
+            <span className="hidden lg:inline">PDF</span>
           </Button>
 
           <Button
@@ -493,6 +676,7 @@ export default function PresentationPreview() {
               onAddBullet={addBullet}
               onDeleteBullet={deleteBullet}
               onDeleteSlide={deleteSlide}
+              onMoveSlide={moveSlide}
               onRemix={handleRemixSlide}
               remixing={remixingIndex === slideIndex}
             />
@@ -513,6 +697,36 @@ export default function PresentationPreview() {
           <div>{slides.length} cards total</div>
           <div>{totalCharacters}/20000 characters</div>
         </div>
+      </div>
+
+      {/* Print-only deck: renders every slide full-bleed for PDF export. */}
+      <div className="hidden print:block bg-white" aria-hidden="true">
+        {slides.map((slide, slideIndex) => {
+          const desc = computeSlideLayout(slide, designTheme, {
+            index: slideIndex,
+            total: slides.length,
+          });
+          return (
+            <div
+              key={slide.id || slideIndex}
+              className="print-slide"
+              style={{
+                width: "13.333in",
+                height: "7.5in",
+                containerType: "inline-size",
+                pageBreakAfter: "always",
+                overflow: "hidden",
+              }}
+            >
+              <SlideStage
+                desc={desc}
+                animating={false}
+                accentFont={headingFont}
+                bodyFont={bodyFont}
+              />
+            </div>
+          );
+        })}
       </div>
 
     </div>

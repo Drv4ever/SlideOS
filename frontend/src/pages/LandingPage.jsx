@@ -54,6 +54,9 @@ export default function LandingPage({ onAuthSuccess, theme }) {
   const handleStartGenerate = (e) => {
     e.preventDefault();
     if (!promptText.trim()) return;
+    // Stash the idea so it survives the login redirect and pre-fills the
+    // generator, so first-time users never lose what they typed.
+    sessionStorage.setItem("slideos_pending_prompt", promptText.trim());
     setIsSubmitting(true);
     setShowAuthModal(true);
   };

@@ -29,6 +29,10 @@ const presentationSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,                    //    
       required: true,
     },
+    isPublic: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

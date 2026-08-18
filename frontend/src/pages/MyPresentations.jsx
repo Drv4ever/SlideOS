@@ -1,6 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRightIcon, FileText, Eye, Trash2 } from "lucide-react";
+import {
+  ChevronRightIcon,
+  FileText,
+  Eye,
+  Trash2,
+  Search,
+  Pencil,
+  Check,
+  X,
+} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -9,15 +18,20 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { toast } from "sonner";
 import {
   deletePresentation,
   getMyPresentations,
   getPresentationById,
+  updatePresentation,
 } from "../services/presentationService";
 
 export default function MyPresentations() {
   const [presentations, setPresentations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editTitle, setEditTitle] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,7 +40,7 @@ export default function MyPresentations() {
         const response = await getMyPresentations();
         setPresentations(response?.data || []);
       } catch (error) {
-        alert(error.message || "Failed to load presentations");
+        toast.error(error.message || "Failed to load presentations");
       } finally {
         setLoading(false);
       }
@@ -70,7 +84,7 @@ export default function MyPresentations() {
         },
       });
     } catch (error) {
-      alert(error.message || "Failed to open presentation");
+      toast.error(error.message || "Failed to open presentation");
     }
   };
 
@@ -83,31 +97,126 @@ export default function MyPresentations() {
     try {
       await deletePresentation(id);
       setPresentations((current) => current.filter((item) => item._id !== id));
+      toast.success("Presentation deleted");
     } catch (error) {
-      alert(error.message || "Failed to delete presentation");
+      toast.error(error.message || "Failed to delete presentation");
     }
   };
 
+  const startRename = (item) => {
+    setEditingId(item._id);
+    setEditTitle(item.title || "");
+  };
+
+  const cancelRename = () => {
+    setEditingId(null);
+    setEditTitle("");
+  };
+
+  const saveRename = async (id) => {
+    const title = editTitle.trim();
+    if (!title) {
+      cancelRename();
+      return;
+    }
+    try {
+      await updatePresentation(id, { title });
+      setPresentations((current) =>
+        current.map((item) => (item._id === id ? { ...item, title } : item))
+      );
+      toast.success("Presentation renamed");
+    } catch (error) {
+      toast.error(error.message || "Failed to rename presentation");
+    } finally {
+      cancelRename();
+    }
+  };
+
+  const filteredPresentations = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return presentations;
+    return presentations.filter((item) =>
+      (item.title || "").toLowerCase().includes(q)
+    );
+  }, [presentations, searchQuery]);
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
-      <h1 className="text-2xl font-bold mb-8">My Presentations</h1>
+      <div className="flex items-center justify-between gap-4 mb-8">
+        <h1 className="text-2xl font-bold">My Presentations</h1>
+        <div className="relative w-full max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search decks..."
+            aria-label="Search presentations"
+            className="w-full bg-sidebar-accent border border-border/80 rounded-xl pl-9 pr-3 py-2 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1.5 focus:ring-orange-500/25 focus:border-orange-500 transition-all"
+          />
+        </div>
+      </div>
 
       {loading && <p className="text-muted-foreground">Loading...</p>}
-      {!loading && presentations.length === 0 && (
-        <p className="text-muted-foreground">No saved presentations yet.</p>
+      {!loading && filteredPresentations.length === 0 && (
+        <p className="text-muted-foreground">
+          {searchQuery.trim()
+            ? "No decks match your search."
+            : "No saved presentations yet."}
+        </p>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {presentations.map((item) => (
+        {filteredPresentations.map((item) => (
           <Card key={item._id} size="sm" className="mx-auto w-full max-w-md bg-muted/30">
             <CardHeader>
               <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-wider mb-1">
                 <FileText className="size-3.5" />
                 <span>Saved deck</span>
               </div>
-              <CardTitle className="text-base font-semibold line-clamp-2">
-                {item.title}
-              </CardTitle>
+              {editingId === item._id ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") saveRename(item._id);
+                      if (e.key === "Escape") cancelRename();
+                    }}
+                    autoFocus
+                    aria-label="Rename presentation"
+                    className="w-full text-base font-semibold bg-transparent outline-none border-b border-orange-500/60 pb-0.5"
+                  />
+                  <button
+                    onClick={() => saveRename(item._id)}
+                    className="text-emerald-500 hover:text-emerald-600 cursor-pointer shrink-0"
+                    title="Save name"
+                  >
+                    <Check className="size-4" />
+                  </button>
+                  <button
+                    onClick={cancelRename}
+                    className="text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+                    title="Cancel"
+                  >
+                    <X className="size-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-start gap-2">
+                  <CardTitle className="text-base font-semibold line-clamp-2 flex-1">
+                    {item.title}
+                  </CardTitle>
+                  <button
+                    onClick={() => startRename(item)}
+                    className="text-muted-foreground/60 hover:text-foreground hover:bg-muted p-1 rounded-md cursor-pointer shrink-0"
+                    title="Rename"
+                  >
+                    <Pencil className="size-3.5" />
+                  </button>
+                </div>
+              )}
             </CardHeader>
             <CardContent>
               <ul className="grid gap-2 py-2 text-sm">

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Sparkles, 
@@ -28,6 +28,7 @@ import { DECK_TEMPLATES, templateToDeck } from '../utils/deckTemplates';
 
 export function PresentationGenerator({ onThemeChange }) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [prompt, setPrompt] = useState('');
   const [slides, setSlides] = useState('5');
   const [textAmount, setTextAmount] = useState('detailed');
@@ -56,6 +57,48 @@ export function PresentationGenerator({ onThemeChange }) {
       promptInputRef.current.focus();
     }
   }, []);
+
+  // Carry over an idea typed on the landing page before login so first-time
+  // users don't lose what they started writing.
+  useEffect(() => {
+    const pendingPrompt = sessionStorage.getItem("slideos_pending_prompt");
+    if (pendingPrompt) {
+      sessionStorage.removeItem("slideos_pending_prompt");
+      setPrompt(pendingPrompt);
+    }
+  }, []);
+
+  // Header "Engines" links navigate to /?engine=... — apply the matching
+  // preset when the generator mounts, then clear the param so reloads don't
+  // re-apply it.
+  useEffect(() => {
+    const engine = searchParams.get("engine");
+    if (!engine) return;
+    setSearchParams({}, { replace: true });
+    if (engine === "creative") {
+      setSelectedTheme("orbit");
+      handleThemeChange("orbit");
+      setTextAmount("minimal");
+      setTone("enthusiastic");
+      setSlides("8");
+    } else if (engine === "outline") {
+      setSelectedTheme("cornflower");
+      handleThemeChange("cornflower");
+      setTextAmount("detailed");
+      setScenario("presentation");
+      setSlides("5");
+    } else if (engine === "minimalist") {
+      setSelectedTheme("noir");
+      handleThemeChange("noir");
+      setTextAmount("minimal");
+      setTone("professional");
+      setSlides("10");
+    }
+    setActiveMode("generate");
+    if (promptInputRef.current) {
+      promptInputRef.current.focus();
+    }
+  }, [searchParams]);
 
   // Listen for reset triggers from sidebar
   useEffect(() => {
@@ -165,6 +208,12 @@ export function PresentationGenerator({ onThemeChange }) {
           localStorage.removeItem("user");
         }
         throw new Error(data?.message || data?.error || "Failed to generate presentation");
+      }
+
+      if (data?.data?.fallback) {
+        toast.warning(
+          "AI generation is temporarily unavailable — a starter outline was created instead. You can still edit it or try Redesign."
+        );
       }
 
       let savedPresentationId = null;

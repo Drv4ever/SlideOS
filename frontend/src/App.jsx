@@ -14,6 +14,7 @@ const PresentationPreview = lazy(() => import('./pages/PresentationPreview.jsx')
 const PresentationView = lazy(() => import('./pages/PresentationView.jsx'));
 const MyPresentations = lazy(() => import('./pages/MyPresentations.jsx'));
 const LandingPage = lazy(() => import('./pages/LandingPage.jsx'));
+const ShareView = lazy(() => import('./pages/ShareView.jsx'));
 
 function getStoredToken() {
   const token = localStorage.getItem("token");
@@ -148,6 +149,13 @@ export default function App() {
           )
         }
       />
+
+      {/* Public share viewer — intentionally NOT auth-gated so anyone with a
+          link can present a deck. */}
+      <Route
+        path="/share/:id"
+        element={<ShareView />}
+      />
     </Routes>
     </Suspense>
   );
@@ -178,17 +186,21 @@ if (isPresentationRoute) {
       >
         {isAuthenticated ? (
           <SidebarProvider>
-            <AppSidebar onLogout={handleLogout} />
-            <div className="flex flex-1 flex-col min-h-svh">
-              <Header
-                themeColors={presentationTheme}
-                isAuthenticated={isAuthenticated}
-              />
-              <div className="flex flex-1 flex-col p-4">
-              <div className="flex items-center gap-2 mb-2">
+            <div className="print:hidden">
+              <AppSidebar onLogout={handleLogout} />
+            </div>
+            <div className="flex flex-1 flex-col min-h-svh print:block">
+              <div className="print:hidden">
+                <Header
+                  themeColors={presentationTheme}
+                  isAuthenticated={isAuthenticated}
+                />
+              </div>
+              <div className="flex flex-1 flex-col p-4 print:p-0">
+              <div className="flex items-center gap-2 mb-2 print:hidden">
                 <SidebarTrigger />
               </div>
-              <main className="flex-1 overflow-y-auto bg-card rounded-2xl border border-border shadow-md p-6 md:p-8">
+              <main className="flex-1 overflow-y-auto bg-card rounded-2xl border border-border shadow-md p-6 md:p-8 print:overflow-visible print:bg-transparent print:border-0 print:shadow-none print:rounded-none print:p-0">
                 {mainContent}
               </main>
               </div>

@@ -32,14 +32,28 @@ function themeIdOf(theme) {
   return theme.id || null;
 }
 
+// Derive a short, readable label from the user's topic so fallback decks at
+// least reference the actual subject instead of looking like a generic stub.
+function topicLabelOf(prompt, maxWords = 5) {
+  if (!prompt || typeof prompt !== "string") return "the topic";
+  const words = prompt
+    .replace(/[^a-zA-Z0-9\s-]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!words.length) return "the topic";
+  const label = words.slice(0, maxWords).join(" ");
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
 export function fakeAIGenerate({ audience ,prompt,scenario, slides, textAmount, theme , tone }) {
+    const topicLabel = topicLabelOf(prompt);
     const slideTemplates = [
-        "Introduction and Executive Summary",
-        "Historical Context and Evolution",
+        `Introduction to ${topicLabel}`,
+        `Historical Context and Evolution of ${topicLabel}`,
         "Technical Fundamentals and Core Architecture",
         "Practical Methodologies and Workflows",
         "Key Challenges, Risks and Mitigations",
-        "Strategic Advantages and Core Benefits",
+        `Strategic Advantages of ${topicLabel}`,
         "Future Outlook, Trends and Scale",
         "Summary, Takeaways and Next Steps",
     ];
@@ -53,10 +67,10 @@ export function fakeAIGenerate({ audience ,prompt,scenario, slides, textAmount, 
     const pointsPerSlide = pointsPerSlideMap[textAmount] || 3;
 
     const detailedPhrases = [
-        `Analyzing the foundational building blocks of ${prompt} to establish a framework for scale and long-term viability.`,
-        `Addressing standard industry pain points by comparing existing approaches against new models built around ${prompt}.`,
+        `Analyzing the foundational building blocks of ${topicLabel} to establish a framework for scale and long-term viability.`,
+        `Addressing standard industry pain points by comparing existing approaches against new models built around ${topicLabel}.`,
         `Reviewing critical case studies, implementation templates, and standard workflows used by early adopters.`,
-        `Identifying common anti-patterns, potential roadblocks, and strategic mitigations when scaling ${prompt}.`,
+        `Identifying common anti-patterns, potential roadblocks, and strategic mitigations when scaling ${topicLabel}.`,
         `Measuring performance metrics, operational efficiency, and ROI indicators across diverse scenarios.`,
         `Leveraging best practices and technical specifications to configure environments for optimal speed and security.`,
     ];
@@ -66,7 +80,7 @@ export function fakeAIGenerate({ audience ,prompt,scenario, slides, textAmount, 
     const themeName = THEME_CATALOG[themeId]?.name || (typeof theme === "object" ? theme?.name : null) || themeId || "SlideOS";
 
     const generatedSlides = Array.from({ length: slides }, (_, i) => {
-        const title = slideTemplates[i] || `${prompt} Analysis - Part ${i + 1}`;
+        const title = slideTemplates[i] || `${topicLabel} Analysis - Part ${i + 1}`;
         return {
             slideNumber: i + 1,
             heading: title,
@@ -83,5 +97,6 @@ export function fakeAIGenerate({ audience ,prompt,scenario, slides, textAmount, 
         title: prompt,
         theme: themeId || themeName,
         slides: generatedSlides,
+        fallback: true,
     };
 }

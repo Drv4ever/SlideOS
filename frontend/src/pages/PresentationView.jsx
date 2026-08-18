@@ -1,13 +1,9 @@
 ﻿import { useLocation, useNavigate } from "react-router-dom";
-import { useState, useRef, useEffect, useMemo } from "react";
-import PptxGenJS from "pptxgenjs";
-import { updatePresentation } from "../services/presentationService";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { Reorder } from "framer-motion";
+import { exportDeckToPPTX } from "../utils/pptxExport";
 import { CURATED_LOOKUP } from "../utils/slideModel";
 import { FONT_CHOICES } from "../utils/themes";
-import {
-  defineMaster,
-  exportSlideWithElements,
-} from "../utils/pptxLayouts";
 import {
   computeSlideLayout,
   toOutlineSlide,
@@ -17,6 +13,8 @@ import {
 } from "../utils/designedLayouts";
 import { remixDeck, remixSlide } from "../utils/remix";
 import { generateSlideImage } from "../utils/imageGen";
+import { useUndoHistory } from "../hooks/useUndoHistory";
+import { useAutosave } from "../hooks/useAutosave";
 import { toast } from "sonner";
 import {
   Copy,
@@ -35,9 +33,16 @@ import {
   Save,
   PlusCircle,
   HelpCircle,
-  Plus
+  Plus,
+  Undo2,
+  Redo2,
+  GripVertical,
+  ChevronUp,
+  ChevronDown,
+  Share2,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
+import { ShareDialog } from "../components/ShareDialog";
 import {
   Pagination,
   PaginationContent,
@@ -164,12 +169,21 @@ export default function PresentationView() {
   // Slides are consumed as-is (outline OR editor format): the design engine
   // (computeSlideLayout) derives the same roles from either schema, so the
   // canvas, present overlay, preview, thumbnails and PPTX all share one truth.
-  const [slides, setSlides] = useState(
+  // Every slide gets a stable id so drag-reorder can track identity.
+  const ensureSlideIds = (list) =>
+    list.map((s, i) =>
+      s && s.id ? s : { ...s, id: s?._id || `slide-${i}-${Date.now()}` }
+    );
+
+  const initialSlides = ensureSlideIds(
     editorSlidesFromState?.length
       ? editorSlidesFromState
       : rawSlides.length
         ? rawSlides
         : [blankSlide]
+  );
+  const [slides, setSlides, { undo, redo, canUndo, canRedo }] = useUndoHistory(
+    initialSlides
   );
   const [themeIdState, setThemeIdState] = useState(themeId || "cornflower");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -183,10 +197,10 @@ export default function PresentationView() {
   const [isPresenting, setIsPresenting] = useState(false);
   const [presentIndex, setPresentIndex] = useState(0);
   const [isSlideAnimating, setIsSlideAnimating] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [remixingDeck, setRemixingDeck] = useState(false);
   const [remixingSlide, setRemixingSlide] = useState(false);
   const [generatingImage, setGeneratingImage] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const activeSlide = slides[activeIndex];
 
@@ -416,6 +430,7 @@ export default function PresentationView() {
 
     const copy = {
       ...original,
+      id: `slide-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       elements: Array.isArray(original.elements)
         ? original.elements.map((el) => ({
             ...el,
@@ -439,6 +454,8 @@ export default function PresentationView() {
   const deleteSlide = (indexToDelete) => {
     if (slides.length === 1) return;
 
+    const deletedSlide = slides[indexToDelete];
+    const deletedNote = slideNotes[indexToDelete] || "";
     const updatedSlides = slides.filter((_, index) => index !== indexToDelete);
     const updatedNotes = slideNotes.filter((_, index) => index !== indexToDelete);
 
@@ -450,6 +467,53 @@ export default function PresentationView() {
     } else if (activeIndex === indexToDelete) {
       setActiveIndex(Math.max(0, activeIndex - 1));
     }
+
+    toast("Slide deleted", {
+      action: {
+        label: "Undo",
+        onClick: () => {
+          setSlides((prev) => {
+            const next = [...prev];
+            next.splice(Math.min(indexToDelete, prev.length), 0, deletedSlide);
+            return next;
+          });
+          setSlideNotes((prev) => {
+            const next = [...prev];
+            next.splice(Math.min(indexToDelete, prev.length), 0, deletedNote);
+            return next;
+          });
+        },
+      },
+    });
+  };
+
+  // Move a slide one step up/down in the deck (syncs notes + active index).
+  const moveSlide = (from, to) => {
+    if (from === to || from < 0 || to < 0 || to >= slides.length) return;
+    setSlides((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+    setSlideNotes((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+    setActiveIndex(to);
+  };
+
+  // Drag-reorder handler (framer-motion Reorder). `newOrder` holds the same
+  // slide object references; map them back to the old indices so slideNotes
+  // (keyed by position) and the active selection follow the new order.
+  const handleReorder = (newOrder) => {
+    const indexMap = newOrder.map((s) => slides.findIndex((x) => x.id === s.id));
+    setSlides(newOrder);
+    setSlideNotes((prev) => indexMap.map((i) => (i >= 0 ? prev[i] : "")));
+    const newActive = indexMap.indexOf(activeIndex);
+    if (newActive !== -1) setActiveIndex(newActive);
   };
 
   const addNewSlide = () => {
@@ -537,36 +601,17 @@ export default function PresentationView() {
   };
 
   const exportPPT = async () => {
-    const pres = new PptxGenJS();
-    pres.layout = "LAYOUT_16x9";
+    await exportDeckToPPTX({
+      slides,
+      title: presentationTitle,
+      theme: designTheme,
+      bodyFont: designTheme.bodyFont,
+      headingFont: designTheme.headingFont,
+    });
+  };
 
-    const cleanHex = (hex) => (hex || "").replace("#", "");
-
-    const themeColors = {
-      primary: cleanHex(designTheme.primary),
-      accent: cleanHex(designTheme.accent),
-      background: cleanHex(designTheme.background),
-      text: cleanHex(designTheme.text),
-      textMuted: cleanHex(designTheme.textMuted),
-    };
-
-    defineMaster(pres, themeColors);
-
-    for (const slideData of slides) {
-      const slide = pres.addSlide({ masterName: "MODERN_MASTER" });
-      // Shared design engine: same layout description the Presentation View renders,
-      // so the PowerPoint export matches the on-screen deck (blocks, cards, images).
-      await exportSlideWithElements(
-        slide,
-        slideData,
-        themeColors,
-        designTheme.bodyFont,
-        designTheme.headingFont,
-        { index: slides.indexOf(slideData), total: slides.length }
-      );
-    }
-
-await pres.writeFile({ fileName: `${presentationTitle || "Presentation"}.pptx` });
+  const exportPDF = () => {
+    window.print();
   };
 
   const goToPresentMode = () => {
@@ -673,39 +718,137 @@ await pres.writeFile({ fileName: `${presentationTitle || "Presentation"}.pptx` }
   // never changes how a slide looks.
   const outlineSlides = slides.map((s) => toOutlineSlide(s));
 
-  const handleSavePresentation = async () => {
+  // Debounced autosave: any deck edit (content, notes, theme, fonts, title)
+  // is persisted shortly after the user stops typing. The manual Save button
+  // forces an immediate save; Ctrl+S does the same.
+  const savePayload = useMemo(
+    () => ({
+      title: presentationTitle.trim() || "Untitled Presentation",
+      theme: themeIdState,
+      slidesCount: slides.length,
+      content: {
+        slides: outlineSlides,
+        editorSlides: slides,
+        slideNotes,
+        textAmount,
+        fonts: {
+          heading: designTheme.headingFont,
+          body: designTheme.bodyFont,
+        },
+      },
+    }),
+    [presentationTitle, themeIdState, slides, outlineSlides, slideNotes, textAmount, designTheme.headingFont, designTheme.bodyFont]
+  );
+  const saveSignature = useMemo(
+    () => JSON.stringify(savePayload),
+    [savePayload]
+  );
+  const autosave = useAutosave({
+    id: presentationId,
+    enabled: !!presentationId,
+    payload: savePayload,
+    signature: saveSignature,
+    onError: (err) => toast.error(err.message || "Autosave failed"),
+  });
+
+  const handleSavePresentation = useCallback(async () => {
     if (!presentationId) {
-      alert("No saved presentation id found for update.");
+      toast.error("No saved presentation id found for update.");
       return;
     }
-
     try {
-      setIsSaving(true);
-      await updatePresentation(presentationId, {
-        title: presentationTitle.trim() || "Untitled Presentation",
-        theme: themeIdState,
-        slidesCount: slides.length,
-        content: {
-          slides: outlineSlides,
-          editorSlides: slides,
-          slideNotes,
-          textAmount,
-          fonts: {
-            heading: designTheme.headingFont,
-            body: designTheme.bodyFont,
-          },
-        },
-      });
-      
-      // Dispatch refresh event to update sidebar
+      await autosave.saveNow();
       window.dispatchEvent(new CustomEvent('refresh-sidebar-decks'));
-      alert("Presentation saved successfully");
+      toast.success("Presentation saved successfully");
     } catch (error) {
-      alert(error.message || "Failed to save presentation");
-    } finally {
-      setIsSaving(false);
+      toast.error(error.message || "Failed to save presentation");
     }
-  };
+  }, [presentationId, autosave.saveNow]);
+
+  // Deck-level undo/redo + save shortcuts. Text fields keep their native
+  // Ctrl+Z so typing is never hijacked; the canvas (contentEditable) routes
+  // through deck state, so it is captured by deck-level undo.
+  useEffect(() => {
+    const isEditableTarget = (target) => {
+      if (!(target instanceof HTMLElement)) return false;
+      const tag = target.tagName;
+      return (
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        tag === "SELECT" ||
+        target.isContentEditable
+      );
+    };
+
+    const handleKeyDown = (e) => {
+      const mod = e.ctrlKey || e.metaKey;
+      if (!mod) return;
+
+      if (e.key === "z" || e.key === "Z") {
+        if (isEditableTarget(e.target)) return;
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+      } else if (e.key === "y" || e.key === "Y") {
+        if (isEditableTarget(e.target)) return;
+        e.preventDefault();
+        redo();
+      } else if (e.key === "s" || e.key === "S") {
+        e.preventDefault();
+        handleSavePresentation();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [undo, redo, handleSavePresentation]);
+
+  // Present-mode keyboard navigation: arrows / Space / PageUp / PageDown /
+  // Home / End / Escape. Only active while the overlay is open.
+  useEffect(() => {
+    if (!isPresenting) return;
+    const handleKeyDown = (e) => {
+      switch (e.key) {
+        case "ArrowRight":
+        case " ":
+        case "PageDown":
+          e.preventDefault();
+          presentNext();
+          break;
+        case "ArrowLeft":
+        case "PageUp":
+          e.preventDefault();
+          presentPrev();
+          break;
+        case "Home":
+          e.preventDefault();
+          setPresentIndex(0);
+          break;
+        case "End":
+          e.preventDefault();
+          setPresentIndex(slides.length - 1);
+          break;
+        case "Escape":
+          e.preventDefault();
+          closePresentMode();
+          break;
+        default:
+          break;
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isPresenting, slides.length]);
+
+  // Keep notes aligned with the deck when undo/redo changes slide count.
+  useEffect(() => {
+    setSlideNotes((prev) => {
+      if (prev.length === slides.length) return prev;
+      const next = [...prev];
+      while (next.length < slides.length) next.push("");
+      return next.slice(0, slides.length);
+    });
+  }, [slides.length]);
 
   const getPageNumbers = () => {
     const total = slides.length;
@@ -733,6 +876,8 @@ await pres.writeFile({ fileName: `${presentationTitle || "Presentation"}.pptx` }
     : null;
 
   return (
+    <>
+    <div className="print:hidden">
     <SidebarProvider className="bg-muted text-foreground font-sans select-none">
       <Sidebar collapsible="offcanvas" variant="sidebar">
         
@@ -846,10 +991,18 @@ await pres.writeFile({ fileName: `${presentationTitle || "Presentation"}.pptx` }
                   </span>
                 </div>
                 
-                <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-3.5 mt-1 scroll-smooth [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-foreground/20">
+                <Reorder.Group
+                  axis="y"
+                  values={slides}
+                  onReorder={handleReorder}
+                  className="flex-1 overflow-y-auto pr-1 flex flex-col gap-3.5 mt-1 scroll-smooth [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-foreground/20"
+                >
                   {slides.map((slide, index) => (
-                    <div
-                      key={index}
+                    <Reorder.Item
+                      key={slide.id || index}
+                      value={slide}
+                      whileDrag={{ scale: 1.02, zIndex: 40, cursor: "grabbing" }}
+                      layout
                       onClick={() => setActiveIndex(index)}
                       className={`flex flex-col p-2.5 rounded-xl border-2 text-left cursor-pointer transition-all hover:shadow-xs group relative ${
                         index === activeIndex
@@ -858,22 +1011,53 @@ await pres.writeFile({ fileName: `${presentationTitle || "Presentation"}.pptx` }
                       }`}
                     >
                       <div className="flex justify-between items-center mb-1.5">
-                        <span className={`text-[10px] font-bold ${index === activeIndex ? 'text-orange-500' : 'text-muted-foreground'}`}>
-                          SLIDE {(index + 1).toString().padStart(2, '0')}
-                        </span>
-                        
-                        {slides.length > 1 && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteSlide(index);
-                            }}
-                            className="text-muted-foreground/70 hover:text-red-500 hover:bg-muted p-0.5 rounded-md opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
-                            title="Remove slide"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        )}
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <GripVertical className="w-3.5 h-3.5 text-muted-foreground/50 cursor-grab active:cursor-grabbing shrink-0" />
+                          <span className={`text-[10px] font-bold truncate ${index === activeIndex ? 'text-orange-500' : 'text-muted-foreground'}`}>
+                            SLIDE {(index + 1).toString().padStart(2, '0')}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          {slides.length > 1 && (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  moveSlide(index, index - 1);
+                                }}
+                                disabled={index === 0}
+                                className="text-muted-foreground/70 hover:text-foreground hover:bg-muted p-0.5 rounded-md opacity-0 group-hover:opacity-100 transition-all cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
+                                title="Move up"
+                              >
+                                <ChevronUp className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  moveSlide(index, index + 1);
+                                }}
+                                disabled={index === slides.length - 1}
+                                className="text-muted-foreground/70 hover:text-foreground hover:bg-muted p-0.5 rounded-md opacity-0 group-hover:opacity-100 transition-all cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
+                                title="Move down"
+                              >
+                                <ChevronDown className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          )}
+                          {slides.length > 1 && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteSlide(index);
+                              }}
+                              className="text-muted-foreground/70 hover:text-red-500 hover:bg-muted p-0.5 rounded-md opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+                              title="Remove slide"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       {/* Mini Slide Canvas Preview Box */}
@@ -901,9 +1085,9 @@ await pres.writeFile({ fileName: `${presentationTitle || "Presentation"}.pptx` }
                           bodyFont={designTheme.bodyFont}
                         />
                       </div>
-                    </div>
+                    </Reorder.Item>
                   ))}
-                </div>
+                </Reorder.Group>
               </div>
             </div>
           ) : (
@@ -1121,6 +1305,24 @@ await pres.writeFile({ fileName: `${presentationTitle || "Presentation"}.pptx` }
             {/* Right Action buttons */}
             <div className="flex items-center gap-2">
               <button
+                onClick={undo}
+                disabled={!canUndo}
+                title="Undo (Ctrl+Z)"
+                className="flex items-center gap-1.5 bg-card border border-border/95 text-foreground/80 hover:bg-muted disabled:opacity-40 transition-all font-bold px-2.5 py-1.5 rounded-xl text-xs cursor-pointer active:scale-95 shadow-2xs"
+              >
+                <Undo2 className="w-4 h-4 text-muted-foreground" />
+              </button>
+
+              <button
+                onClick={redo}
+                disabled={!canRedo}
+                title="Redo (Ctrl+Y)"
+                className="flex items-center gap-1.5 bg-card border border-border/95 text-foreground/80 hover:bg-muted disabled:opacity-40 transition-all font-bold px-2.5 py-1.5 rounded-xl text-xs cursor-pointer active:scale-95 shadow-2xs"
+              >
+                <Redo2 className="w-4 h-4 text-muted-foreground" />
+              </button>
+
+              <button
                 onClick={handleRemixDeck}
                 disabled={remixingDeck}
                 className="flex items-center gap-1.5 bg-card border border-border/95 text-foreground/80 hover:bg-muted disabled:opacity-50 disabled:cursor-wait transition-all font-bold px-3 py-1.5 rounded-xl text-xs cursor-pointer active:scale-95 shadow-2xs"
@@ -1142,12 +1344,38 @@ await pres.writeFile({ fileName: `${presentationTitle || "Presentation"}.pptx` }
               </button>
 
               <button
+                onClick={exportPDF}
+                className="flex items-center gap-1.5 bg-card border border-border/95 text-foreground/80 hover:bg-muted transition-all font-bold px-3 py-1.5 rounded-xl text-xs cursor-pointer active:scale-95 shadow-2xs"
+                title="Save as PDF via browser print"
+              >
+                <Download className="w-4 h-4 text-muted-foreground" />
+                <span>Export PDF</span>
+              </button>
+
+              <button
+                onClick={() => setShareOpen(true)}
+                disabled={!presentationId}
+                className="flex items-center gap-1.5 bg-card border border-border/95 text-foreground/80 hover:bg-muted disabled:opacity-40 transition-all font-bold px-3 py-1.5 rounded-xl text-xs cursor-pointer active:scale-95 shadow-2xs"
+                title="Share this presentation"
+              >
+                <Share2 className="w-4 h-4 text-muted-foreground" />
+                <span>Share</span>
+              </button>
+
+              <button
                 onClick={handleSavePresentation}
-                disabled={!presentationId || isSaving}
+                disabled={!presentationId || autosave.status === "saving"}
                 className="flex items-center gap-1.5 bg-card border border-border/95 text-foreground/80 hover:bg-muted disabled:opacity-50 transition-all font-bold px-3 py-1.5 rounded-xl text-xs cursor-pointer active:scale-95 shadow-2xs"
+                title="Save (Ctrl+S)"
               >
                 <Save className="w-4 h-4 text-muted-foreground" />
-                <span>Save</span>
+                <span>
+                  {autosave.status === "saving"
+                    ? "Saving..."
+                    : autosave.status === "saved"
+                      ? "Saved"
+                      : "Save"}
+                </span>
               </button>
 
               <button
@@ -1318,6 +1546,46 @@ await pres.writeFile({ fileName: `${presentationTitle || "Presentation"}.pptx` }
       )}
     </div>
     </SidebarProvider>
+    </div>
+
+    {/* Print-only deck: renders every slide full-bleed for PDF export. The
+        editor chrome above is hidden under @media print. */}
+    <div className="hidden print:block bg-white" aria-hidden="true">
+      {slides.map((slide, index) => {
+        const desc = computeSlideLayout(slide, designTheme, {
+          index,
+          total: slides.length,
+        });
+        return (
+          <div
+            key={slide.id || index}
+            className="print-slide"
+            style={{
+              width: "13.333in",
+              height: "7.5in",
+              containerType: "inline-size",
+              pageBreakAfter: "always",
+              overflow: "hidden",
+            }}
+          >
+            <SlideStage
+              desc={desc}
+              animating={false}
+              accentFont={designTheme.headingFont}
+              bodyFont={designTheme.bodyFont}
+            />
+          </div>
+        );
+      })}
+    </div>
+
+    {shareOpen && (
+      <ShareDialog
+        presentationId={presentationId}
+        onOpenChange={setShareOpen}
+      />
+    )}
+    </>
   );
 }
 
