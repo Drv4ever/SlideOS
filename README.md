@@ -330,5 +330,10 @@ Authorization: Bearer <token>
 - `npm run test` — Vitest suite (131 tests)
 
 ---
+Archtectureal Diagram of SlideOS
+
+<img width="5285" height="6054" alt="diagram" src="https://github.com/user-attachments/assets/1755a0d9-9b72-4a79-970e-64b3e38f8b7e" />
+
+
 
 Made for learning purposes.
